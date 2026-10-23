@@ -16,7 +16,7 @@ export function groupHasBuildings(state, index) {
 export function currentRent(state, index) {
   const cell = BOARD[index];
   const prop = state.props[index];
-  if (!prop?.owner || prop.mortgaged) return null;
+  if (!prop?.owner) return null;
   if (cell.type === 'city') {
     if (prop.houses > 0) return money(cell.rents[prop.houses]);
     return money(cell.rents[0] * (ownsCountry(state, prop.owner, cell.country) ? 2 : 1));

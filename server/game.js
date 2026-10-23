@@ -1,6 +1,6 @@
 import {
-  BOARD, RULES, COUNTRIES, COUNTRY_CELLS, OWNABLE, AIRPORT_RENTS, PLAYER_COLORS,
-  housePrice, hijackCost, boardDistance,
+  BOARD, RULES, CASINO, COUNTRIES, COUNTRY_CELLS, OWNABLE, AIRPORT_RENTS, PLAYER_COLORS,
+  housePrice, hijackCost, boardDistance, casinoPayout, resaleValue,
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
@@ -160,7 +160,7 @@ export class Game {
     this.phase = 'playing';
     this.players = shuffle(this.players);
     for (const p of this.players) p.money = this.settings.startMoney;
-    for (const i of OWNABLE) this.props[i] = { owner: null, houses: 0, mortgaged: false };
+    for (const i of OWNABLE) this.props[i] = { owner: null, houses: 0 };
     this.decks.chance = shuffle(CHANCE_CARDS.map((c) => c.id));
     this.decks.chest = shuffle(CHEST_CARDS.map((c) => c.id));
     this.stats = { turns: 0, startedAt: Date.now(), endedAt: null, history: [], cells: {}, players: {} };
@@ -177,6 +177,7 @@ export class Game {
       houses: 0, hotels: 0, hijacks: 0, hotelsLost: 0, jail: 0, trafficArrests: 0, trafficDeliveries: 0,
       doubles: 0, rolls: 0, diceTotal: 0, goPasses: 0, cards: 0, taxes: 0, trades: 0, swaps: 0,
       goulagWins: 0, goulagLosses: 0, peakWorth: 0, outTurn: null,
+      casinoSpins: 0, casinoBet: 0, casinoWon: 0, jackpots: 0, propsSold: 0,
     });
   }
 
@@ -223,13 +224,15 @@ export class Game {
       case 'useJailCard': this.actUseJailCard(p); break;
       case 'build': this.actBuild(p, a.cell); break;
       case 'sell': this.actSell(p, a.cell); break;
-      case 'mortgage': this.actMortgage(p, a.cell); break;
-      case 'unmortgage': this.actUnmortgage(p, a.cell); break;
+      case 'sellProperty': this.actSellProperty(p, a.cell); break;
+      case 'casinoSpin': this.actCasinoSpin(p, a.bet); break;
+      case 'casinoLeave': this.actCasinoLeave(p); break;
       case 'hijack': this.actHijack(p, !!a.accept); break;
       case 'bankrupt': this.actBankrupt(p); break;
       case 'proposeTrade': this.actProposeTrade(p, a); break;
       case 'acceptTrade': this.actAcceptTrade(p, a.id); break;
       case 'declineTrade': this.actDeclineTrade(p, a.id); break;
+      case 'counterTrade': this.actCounterTrade(p, a); break;
       default: fail('Action inconnue');
     }
     for (const fn of this.afterHooks || []) fn();
@@ -265,7 +268,7 @@ export class Game {
     if (isDouble) ps.doubles++;
     // durée approximative de l'animation côté client (dés + déplacement), pour que les bots attendent
     const fromPos = p.pos;
-    this.after(() => { this.animUntil = Date.now() + 800 + ((p.pos - fromPos + 40) % 40) * 110; });
+    this.after(() => { this.animUntil = Math.max(this.animUntil || 0, Date.now() + 800 + ((p.pos - fromPos + 40) % 40) * 110); });
     this.addLog(`${p.name} lance les dés : ${dice[0]} + ${dice[1]} = ${sum}${isDouble ? ' (double !)' : ''}`, p.id);
 
     if (p.jail.in) {
@@ -340,7 +343,9 @@ export class Game {
       p.money += RULES.TRAFFIC_BONUS;
       this.st(p).trafficDeliveries++;
       this.addLog(`💊 ${p.name} écoule sa marchandise et empoche ${RULES.TRAFFIC_BONUS} $ de plus`, p.id);
-      this.addEvent('traffic', { pid: p.id, text: `${p.name} a livré la marchandise : +${RULES.TRAFFIC_BONUS} $ 💰` });
+      // cinématique « Say my name » chez tous les joueurs
+      this.addEvent('delivery', { pid: p.id, text: `💊 ${p.name} a livré la marchandise : +${RULES.TRAFFIC_BONUS} $ 💰` });
+      this.animUntil = Date.now() + 18000;
     }
   }
 
@@ -398,6 +403,13 @@ export class Game {
           this.sendToJail(p, 'traffic');
         }
         break;
+      case 'casino':
+        if (this.turn?.pid === p.id && p.money > 0) {
+          this.turn.pending = { type: 'casino', cell: p.pos, spins: 0, last: null };
+        } else if (p.money <= 0) {
+          this.addLog(`🎰 ${p.name} n’a pas d’argent à miser au casino`, p.id);
+        }
+        break;
       case 'parking':
         if (this.settings.freeParkingPot && this.pot > 0) {
           this.addLog(`🏖️ ${p.name} récupère la cagnotte du Parc gratuit : ${this.pot} $`, p.id);
@@ -416,7 +428,7 @@ export class Game {
       this.turn.pending = { type: 'buy', cell: cell.index, hijackAfter: cell.type === 'airport' };
       return;
     }
-    if (prop.owner !== p.id && !prop.mortgaged) {
+    if (prop.owner !== p.id) {
       const owner = this.player(prop.owner);
       let rent = this.rentFor(cell.index, opts);
       this.addLog(`${p.name} paie ${rent} $ de loyer à ${owner.name} (${cell.name})`, p.id);
@@ -433,7 +445,7 @@ export class Game {
   rentFor(index, opts = {}) {
     const cell = BOARD[index];
     const prop = this.props[index];
-    if (!prop?.owner || prop.mortgaged) return 0;
+    if (!prop?.owner) return 0;
     if (cell.type === 'city') {
       if (prop.houses > 0) return cell.rents[prop.houses];
       return cell.rents[0] * (this.ownsCountry(prop.owner, cell.country) ? 2 : 1);
@@ -555,6 +567,40 @@ export class Game {
 
   afterBuyResolved(p, pend) {
     if (pend?.hijackAfter && p.status === 'alive') this.offerHijack(p, pend.cell);
+    this.updatePhase();
+  }
+
+  // ---------- casino ----------
+  actCasinoSpin(p, bet) {
+    this.requireTurn(p);
+    const pend = this.turn.pending;
+    if (pend?.type !== 'casino') fail('Vous n’êtes pas au casino');
+    if (pend.spins >= CASINO.MAX_SPINS) fail(`Maximum ${CASINO.MAX_SPINS} parties par visite`);
+    bet = Math.floor(+bet);
+    if (!(bet >= 1)) fail('Mise invalide');
+    if (bet > p.money) fail('Vous ne pouvez pas miser plus que votre argent');
+    const n = CASINO.SYMBOLS.length;
+    const reels = [0, 1, 2].map(() => Math.floor(Math.random() * n));
+    const win = casinoPayout(reels, bet);
+    p.money += win - bet;
+    pend.spins++;
+    pend.last = { id: (this.casinoSeq = (this.casinoSeq || 0) + 1), reels, bet, win };
+    const s = this.st(p);
+    s.casinoSpins++;
+    s.casinoBet += bet;
+    s.casinoWon += win;
+    const jackpot = reels[0] === reels[1] && reels[1] === reels[2];
+    if (jackpot) s.jackpots++;
+    const sym = reels.map((r) => CASINO.SYMBOLS[r].s).join(' ');
+    this.addLog(`🎰 ${p.name} mise ${bet} $ : ${sym} → ${win ? `gagne ${win} $${jackpot ? ' (JACKPOT !)' : ''}` : 'perdu'}`, p.id);
+    // laisse tourner les rouleaux avant que les bots enchaînent
+    this.animUntil = Date.now() + 3000;
+  }
+
+  actCasinoLeave(p) {
+    this.requireTurn(p);
+    if (this.turn.pending?.type !== 'casino') fail('Vous n’êtes pas au casino');
+    this.turn.pending = null;
     this.updatePhase();
   }
 
@@ -724,7 +770,6 @@ export class Game {
     if (cell?.type !== 'city' || prop.owner !== p.id) fail('Ce n’est pas votre ville');
     if (!this.ownsCountry(p.id, cell.country)) fail(`Il faut posséder toutes les villes de ${COUNTRIES[cell.country].name}`);
     const group = COUNTRY_CELLS[cell.country].map((i) => this.props[i]);
-    if (group.some((g) => g.mortgaged)) fail('Une ville du pays est hypothéquée');
     if (prop.houses >= 5) fail('Déjà un hôtel');
     if (prop.houses > Math.min(...group.map((g) => g.houses))) fail('Construisez uniformément dans le pays');
     const price = housePrice(cell);
@@ -750,29 +795,23 @@ export class Game {
     this.clearDebt(p);
   }
 
-  actMortgage(p, index) {
+  // Revente d'une propriété à la banque (remplace l'hypothèque) : elle redevient libre à l'achat
+  actSellProperty(p, index) {
     this.requireAlive(p);
     const cell = BOARD[index];
     const prop = this.props[index];
     if (!prop || prop.owner !== p.id) fail('Ce n’est pas votre propriété');
-    if (prop.mortgaged) fail('Déjà hypothéquée');
     if (this.groupHasBuildings(index)) fail('Vendez d’abord les bâtiments du pays');
-    prop.mortgaged = true;
-    p.money += cell.mortgage;
-    this.addLog(`${p.name} hypothèque ${cell.name} (+${cell.mortgage} $)`, p.id);
+    if (this.turn?.pending?.type === 'buy' && this.turn.pending.cell === index) fail('Impossible maintenant');
+    if (this.auction?.cell === index) fail('Propriété aux enchères');
+    const value = resaleValue(cell);
+    prop.owner = null;
+    prop.houses = 0;
+    p.money += value;
+    this.st(p).propsSold++;
+    this.cancelTradesWithProps([index]);
+    this.addLog(`${p.name} revend ${cell.name} à la banque (+${value} $)`, p.id);
     this.clearDebt(p);
-  }
-
-  actUnmortgage(p, index) {
-    this.requireAlive(p);
-    const cell = BOARD[index];
-    const prop = this.props[index];
-    if (!prop || prop.owner !== p.id || !prop.mortgaged) fail('Rien à lever');
-    const cost = Math.round(cell.mortgage * (1 + RULES.MORTGAGE_INTEREST));
-    if (p.money < cost) fail('Pas assez d’argent');
-    p.money -= cost;
-    prop.mortgaged = false;
-    this.addLog(`${p.name} lève l’hypothèque de ${cell.name} (-${cost} $)`, p.id);
   }
 
   clearDebt(p) { if (p.money >= 0) p.debtCreditor = null; }
@@ -804,7 +843,7 @@ export class Game {
     for (const [i, prop] of Object.entries(this.props)) {
       if (prop.owner !== p.id) continue;
       const cell = BOARD[i];
-      total += prop.mortgaged ? 0 : cell.mortgage;
+      total += resaleValue(cell);
       total += (prop.houses * housePrice(cell)) / 2;
     }
     return total;
@@ -826,7 +865,7 @@ export class Game {
       p.money += (prop.houses * housePrice(BOARD[i])) / 2;
       prop.houses = 0;
       if (toPlayer) prop.owner = toPlayer.id;
-      else Object.assign(prop, { owner: null, mortgaged: false });
+      else prop.owner = null;
     }
     if (toPlayer) {
       if (p.money > 0) toPlayer.money += p.money;
@@ -953,9 +992,20 @@ export class Game {
     if (!offer.money && !offer.props.length && !offer.cards && !request.money && !request.props.length && !request.cards) fail('Échange vide');
     this.validateSide(p, offer);
     this.validateSide(to, request);
-    const t = { id: uid(), from: p.id, to: to.id, offer, request, t: Date.now() };
+    const t = { id: uid(), from: p.id, to: to.id, offer, request, t: Date.now(), counter: !!a.counter };
     this.trades.push(t);
-    this.addLog(`🤝 ${p.name} propose un échange à ${to.name}`, p.id);
+    this.addLog(a.counter ? `🤝 ${p.name} fait une contre-proposition à ${to.name}` : `🤝 ${p.name} propose un échange à ${to.name}`, p.id);
+    return t;
+  }
+
+  // Négociation : remplace la proposition reçue par une contre-proposition envoyée à son auteur
+  actCounterTrade(p, a) {
+    const t = this.trades.find((x) => x.id === a.id);
+    if (!t || t.to !== p.id) fail('Échange introuvable');
+    const from = this.player(t.from);
+    if (!from || from.status !== 'alive') fail('Joueur invalide');
+    this.actProposeTrade(p, { to: from.id, offer: a.offer, request: a.request, counter: true });
+    this.trades = this.trades.filter((x) => x.id !== t.id);
   }
 
   actAcceptTrade(p, id) {

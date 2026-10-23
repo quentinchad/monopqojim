@@ -15,8 +15,33 @@ export const RULES = {
   // Goulag : argent rendu au gagnant du combat
   GOULAG_RETURN_MONEY: 1000,
   MAX_PLAYERS: 8,
-  MORTGAGE_INTEREST: 0.1,
+  // Revente d'une propriété à la banque : ce pourcentage de son prix d'achat
+  RESALE_RATIO: 0.5,
 };
+
+// Casino : machine à sous à 3 rouleaux, jusqu'à MAX_SPINS parties par arrêt sur la case.
+// Trois symboles identiques : mise × multiplicateur du symbole ; deux identiques : mise × PAIR.
+// Les rouleaux sont tirés au hasard de façon uniforme (espérance de gain ≈ 95 % de la mise).
+export const CASINO = {
+  MAX_SPINS: 5,
+  PAIR: 1.5,
+  SYMBOLS: [
+    { s: '🍒', mult: 5 },
+    { s: '🍋', mult: 8 },
+    { s: '🍉', mult: 10 },
+    { s: '🔔', mult: 12 },
+    { s: '💎', mult: 15 },
+    { s: '7️⃣', mult: 20 },
+  ],
+};
+
+// Gain d'une combinaison de rouleaux (indices de CASINO.SYMBOLS) pour une mise donnée
+export function casinoPayout(reels, bet) {
+  const [a, b, c] = reels;
+  if (a === b && b === c) return bet * CASINO.SYMBOLS[a].mult;
+  if (a === b || b === c || a === c) return Math.floor(bet * CASINO.PAIR);
+  return 0;
+}
 
 export const PLAYER_COLORS = [
   '#ef4444', // rouge
@@ -41,10 +66,10 @@ export const COUNTRIES = {
 };
 
 const city = (name, country, price, rents) => ({
-  type: 'city', name, country, price, rents, mortgage: price / 2,
+  type: 'city', name, country, price, rents,
 });
-const airport = (name, code) => ({ type: 'airport', name, code, price: 200, mortgage: 100 });
-const utility = (name, icon) => ({ type: 'utility', name, icon, price: 150, mortgage: 75 });
+const airport = (name, code) => ({ type: 'airport', name, code, price: 200 });
+const utility = (name, icon) => ({ type: 'utility', name, icon, price: 150 });
 
 export const BOARD = [
   { type: 'go', name: 'Départ' },
@@ -55,7 +80,7 @@ export const BOARD = [
   airport('Aéroport de Dubaï', 'DXB'),
   city('Pékin', 'china', 100, [6, 30, 90, 270, 400, 550]),
   { type: 'chance', name: 'Chance' },
-  city('Shanghai', 'china', 100, [6, 30, 90, 270, 400, 550]),
+  { type: 'casino', name: 'Casino de Macao' },
   city('Hong Kong', 'china', 120, [8, 40, 100, 300, 450, 600]),
   { type: 'jail', name: 'Prison' },
   city('Séville', 'spain', 140, [10, 50, 150, 450, 625, 750]),
@@ -99,6 +124,11 @@ export const AIRPORT_RENTS = [25, 50, 100, 200];
 
 export function housePrice(cell) {
   return cell.type === 'city' ? COUNTRIES[cell.country].housePrice : 0;
+}
+
+// Prix de revente d'une propriété à la banque
+export function resaleValue(cell) {
+  return Math.round((cell.price || 0) * RULES.RESALE_RATIO);
 }
 
 export function hijackCost(cell) {

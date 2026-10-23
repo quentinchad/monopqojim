@@ -50,6 +50,7 @@ export default function Home({ initialRoom, onEnter }) {
         <div><b>💊 Trafic</b> Bonus au passage par Départ… ou peine de prison doublée.</div>
         <div><b>⛓️ Goulag</b> Éliminé ? Battez-vous en duel pour revenir en jeu.</div>
         <div><b>🔀 Échange forcé</b> Une carte Chance qui échange vos villes au hasard.</div>
+        <div><b>🎰 Casino</b> Misez ce que vous voulez à la machine à sous de Macao.</div>
       </div>
     </div>
   );

@@ -43,13 +43,12 @@ function tryAct(game, p, action) {
 
 function raiseFunds(game, p) {
   const mine = owned(game, p);
-  // vendre d'abord les bâtiments, puis hypothéquer les propriétés les moins utiles
+  // vendre d'abord les bâtiments, puis revendre à la banque les propriétés les moins utiles
   const withHouses = mine.filter((i) => game.props[i].houses > 0)
     .sort((a, b) => game.props[b].houses - game.props[a].houses);
   for (const i of withHouses) if (tryAct(game, p, { type: 'sell', cell: i })) return true;
-  const mortgageable = mine.filter((i) => !game.props[i].mortgaged)
-    .sort((a, b) => valueFor(game, p, a) - valueFor(game, p, b));
-  for (const i of mortgageable) if (tryAct(game, p, { type: 'mortgage', cell: i })) return true;
+  const sellable = [...mine].sort((a, b) => valueFor(game, p, a) - valueFor(game, p, b));
+  for (const i of sellable) if (tryAct(game, p, { type: 'sellProperty', cell: i })) return true;
   return tryAct(game, p, { type: 'bankrupt' });
 }
 
@@ -67,7 +66,6 @@ function tryBuild(game, p) {
   for (const country of Object.keys(COUNTRY_CELLS)) {
     if (!game.ownsCountry(p.id, country)) continue;
     const cells = COUNTRY_CELLS[country];
-    if (cells.some((i) => game.props[i].mortgaged)) continue;
     const min = Math.min(...cells.map((i) => game.props[i].houses));
     if (min >= 5) continue;
     const target = cells.find((i) => game.props[i].houses === min);
@@ -111,6 +109,7 @@ export function botStep(game) {
   if (isCautious(p)) {
     if (pend?.type === 'buy') return tryAct(game, p, { type: 'decline' });
     if (pend?.type === 'hijack') return tryAct(game, p, { type: 'hijack', accept: false });
+    if (pend?.type === 'casino') return tryAct(game, p, { type: 'casinoLeave' });
     return tryAct(game, p, { type: t.phase === 'roll' ? 'roll' : 'endTurn' });
   }
   if (pend?.type === 'buy') {
@@ -124,6 +123,12 @@ export function botStep(game) {
   if (pend?.type === 'hijack') {
     return tryAct(game, p, { type: 'hijack', accept: p.money - pend.cost > 300 });
   }
+  if (pend?.type === 'casino') {
+    // tente sa chance une ou deux fois avec une petite mise quand il est à l'aise
+    const bet = Math.floor(p.money * 0.08);
+    if (pend.spins < 2 && p.money > 400 && Math.random() < 0.6) return tryAct(game, p, { type: 'casinoSpin', bet });
+    return tryAct(game, p, { type: 'casinoLeave' });
+  }
   if (t.phase === 'roll') {
     if (p.jail.in && !p.jail.heavy) {
       if (p.jailCards.length && tryAct(game, p, { type: 'useJailCard' })) return true;
@@ -134,8 +139,6 @@ export function botStep(game) {
   }
   if (t.phase === 'done') {
     if (tryBuild(game, p)) return true;
-    const mortgaged = owned(game, p).find((i) => game.props[i].mortgaged);
-    if (mortgaged != null && p.money > 800 && tryAct(game, p, { type: 'unmortgage', cell: mortgaged })) return true;
     return tryAct(game, p, { type: 'endTurn' });
   }
   return false;

@@ -46,25 +46,29 @@ function Side({ state, player, side, setSide, title }) {
   );
 }
 
-export default function TradeModal({ state, me, initialTarget, onClose }) {
+// counter : proposition reçue à laquelle on répond par une contre-proposition (côtés inversés, pré-remplis)
+export default function TradeModal({ state, me, initialTarget, counter, onClose }) {
   const others = state.players.filter((p) => p.status === 'alive' && p.id !== me);
   const [target, setTarget] = useState(initialTarget || others[0]?.id);
   const empty = { money: 0, props: [], cards: 0 };
-  const [offer, setOffer] = useState(empty);
-  const [request, setRequest] = useState(empty);
+  const [offer, setOffer] = useState(counter ? counter.request : empty);
+  const [request, setRequest] = useState(counter ? counter.offer : empty);
   const meP = playerById(state, me);
   const tp = playerById(state, target);
 
   async function send() {
-    const res = await act('proposeTrade', { to: target, offer, request });
+    const res = counter
+      ? await act('counterTrade', { id: counter.id, offer, request })
+      : await act('proposeTrade', { to: target, offer, request });
     if (!res.error) onClose();
   }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="trade-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>🤝 Proposer un échange</h3>
-        <div className="trade-targets">
+        <h3>{counter ? '💬 Contre-proposition' : '🤝 Proposer un échange'}</h3>
+        {counter && <p className="note">Modifiez l’échange puis renvoyez-le : la proposition reçue sera remplacée par la vôtre.</p>}
+        <div className="trade-targets" hidden={!!counter}>
           {others.map((p) => (
             <button key={p.id} className={`btn ${p.id === target ? 'primary' : ''}`}
               onClick={() => { setTarget(p.id); setRequest(empty); }}>
@@ -82,7 +86,7 @@ export default function TradeModal({ state, me, initialTarget, onClose }) {
         <p className="note">Les villes d’un pays où il y a des bâtiments ne peuvent pas être échangées.</p>
         <div className="row end">
           <button className="btn ghost" onClick={onClose}>Annuler</button>
-          <button className="btn primary" disabled={!tp} onClick={send}>Envoyer la proposition</button>
+          <button className="btn primary" disabled={!tp} onClick={send}>{counter ? 'Envoyer la contre-proposition' : 'Envoyer la proposition'}</button>
         </div>
       </div>
     </div>

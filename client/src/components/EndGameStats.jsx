@@ -160,6 +160,7 @@ const AWARDS = [
   { key: 'jail', icon: '🚔', title: 'Habitué de la prison', fmt: (v) => `${v} séjour${v > 1 ? 's' : ''}` },
   { key: 'doubles', icon: '🎲', title: 'Roi des doubles', fmt: (v) => `${v} double${v > 1 ? 's' : ''}` },
   { key: 'goPasses', icon: '🌍', title: 'Globe-trotter', fmt: (v) => `${v} tour${v > 1 ? 's' : ''} du monde` },
+  { key: 'jackpots', icon: '🎰', title: 'Flambeur', fmt: (v) => `${v} jackpot${v > 1 ? 's' : ''}` },
   { key: 'trades', icon: '🤝', title: 'Négociateur', fmt: (v) => `${v} échange${v > 1 ? 's' : ''}` },
   { key: 'goulagWins', icon: '⛓️', title: 'Survivant du goulag', fmt: (v) => `${v} duel${v > 1 ? 's' : ''} gagné${v > 1 ? 's' : ''}` },
 ];
@@ -179,6 +180,7 @@ const TABLE_ROWS = [
   ['Séjours en prison', (s) => s.jail || 0],
   ['Livraisons / arrestations (trafic)', (s) => `${s.trafficDeliveries || 0} / ${s.trafficArrests || 0}`],
   ['Hôtels détruits / perdus (avion)', (s) => `${s.hijacks || 0} / ${s.hotelsLost || 0}`],
+  ['Casino : misé / gagné', (s) => `${money(s.casinoBet || 0)} / ${money(s.casinoWon || 0)}`],
   ['Cartes tirées', (s) => s.cards || 0],
   ['Échanges conclus', (s) => s.trades || 0],
   ['Duels du goulag gagnés / perdus', (s) => `${s.goulagWins || 0} / ${s.goulagLosses || 0}`],
@@ -250,7 +252,7 @@ export default function EndGameStats({ state, onClose }) {
               <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Tableau</button>
             </div>
           </div>
-          <p className="muted small-note">Argent + valeur hypothécaire des propriétés + revente des bâtiments, à chaque tour. Survolez la courbe pour le détail.</p>
+          <p className="muted small-note">Argent + revente des propriétés et des bâtiments, à chaque tour. Survolez la courbe pour le détail.</p>
           {view === 'chart' ? (
             <>
               <Legend players={players} />

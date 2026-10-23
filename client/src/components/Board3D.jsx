@@ -77,7 +77,7 @@ function drawCell(ctx, W, H, cell, state, pal) {
 
   const bottomTag = () => {
     if (owner) {
-      const label = prop.mortgaged ? 'HYPOTHÉQUÉE' : currentRent(state, cell.index);
+      const label = currentRent(state, cell.index);
       ctx.fillStyle = owner.color;
       roundRect(ctx, 14, H - 58, W - 28, 42, 12);
       ctx.fill();
@@ -106,8 +106,8 @@ function drawCell(ctx, W, H, cell, state, pal) {
     ctx.font = 'bold 26px Nunito, sans-serif';
     wrapText(ctx, cell.name.toUpperCase(), W / 2, H * 0.38, W - 16, 30);
     bottomTag();
-  } else if (['airport', 'utility', 'chance', 'chest', 'tax'].includes(cell.type)) {
-    const icon = { airport: '✈️', chance: '❓', chest: '📦', tax: '💸' }[cell.type] || cell.icon;
+  } else if (['airport', 'utility', 'chance', 'chest', 'tax', 'casino'].includes(cell.type)) {
+    const icon = { airport: '✈️', chance: '❓', chest: '📦', tax: '💸', casino: '🎰' }[cell.type] || cell.icon;
     ctx.font = `64px ${EMOJI_FONT}`;
     ctx.fillText(icon, W / 2, H * 0.3);
     ctx.fillStyle = pal.cellText;
@@ -134,10 +134,6 @@ function drawCell(ctx, W, H, cell, state, pal) {
     ctx.fillStyle = pal.price;
     ctx.font = 'bold 28px Nunito, sans-serif';
     ctx.fillText(conf[2], W / 2, H * 0.82);
-  }
-  if (prop?.mortgaged) {
-    ctx.fillStyle = 'rgba(10,8,20,.55)';
-    ctx.fillRect(0, 0, W, H - 64);
   }
 }
 
@@ -448,7 +444,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     w.refresh?.();
   }, [themeId]);
 
-  // Mise à jour des cases (propriétaire, bâtiments, hypothèques)
+  // Mise à jour des cases (propriétaire, bâtiments, loyers)
   useEffect(() => {
     const w = world.current;
     if (!w) return;
@@ -458,7 +454,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         const prop = state.props[c.cell.index];
         const owner = prop?.owner && playerById(state, prop.owner);
         const hl = w.highlights[c.cell.index];
-        const sig = [w.themeId, owner?.color, prop?.mortgaged, prop?.houses, currentRent(state, c.cell.index), w.flagsReady,
+        const sig = [w.themeId, owner?.color, prop?.houses, currentRent(state, c.cell.index), w.flagsReady,
           c.cell.type === 'parking' ? state.pot : 0].join('|');
         if (sig !== c.sig) {
           c.sig = sig;

@@ -139,12 +139,13 @@ io.on('connection', (socket) => {
       const others = game.players.filter((p) => p.id !== pid && p.status === 'alive');
       if (op === 'dice') game.forcedDice = [[d.a, d.b]];
       if (op === 'money') me.money = d.amount;
+      if (op === 'traffic') me.trafficking = true;
       if (op === 'hotels') {
         // un adversaire possède toute l'Allemagne avec des hôtels
-        for (const i of [16, 18, 19]) Object.assign(game.props[i], { owner: others[0].id, houses: 5, mortgaged: false });
+        for (const i of [16, 18, 19]) Object.assign(game.props[i], { owner: others[0].id, houses: 5 });
       }
       if (op === 'country') {
-        for (const i of d.cells) Object.assign(game.props[i], { owner: pid, houses: 0, mortgaged: false });
+        for (const i of d.cells) Object.assign(game.props[i], { owner: pid, houses: 0 });
       }
       if (op === 'card') {
         const deck = d.id.startsWith('c_') ? 'chance' : 'chest';

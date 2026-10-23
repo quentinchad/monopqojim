@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD, COUNTRY_CELLS, OWNABLE, RULES } from '../../../shared/board.js';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { BOARD, COUNTRY_CELLS, OWNABLE, RULES, CASINO, PLAYER_COLORS, casinoPayout } from '../../../shared/board.js';
 import { Fight, ARENA } from '../../../server/fight.js';
 import { Game } from '../../../server/game.js';
 import { botStep } from '../../../server/bots.js';
@@ -12,6 +12,9 @@ import FightOverlay from './FightOverlay.jsx';
 import { EventBanner } from './Game.jsx';
 import { useAnimatedPositions } from '../hooks.js';
 import ThemePicker from './ThemePicker.jsx';
+import SlotMachine from './SlotMachine.jsx';
+
+const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 
 const AIRPORTS = BOARD.filter((c) => c.type === 'airport');
 const CITIES = BOARD.filter((c) => c.type === 'city');
@@ -27,10 +30,10 @@ const PLAYERS = [
 function makeDemoState(target) {
   const props = {};
   const countries = Object.keys(COUNTRY_CELLS);
-  for (const i of OWNABLE) props[i] = { owner: null, houses: 0, mortgaged: false };
+  for (const i of OWNABLE) props[i] = { owner: null, houses: 0 };
   countries.forEach((k, n) => {
     const owner = PLAYERS[(n % 3) + 1].id;
-    COUNTRY_CELLS[k].forEach((i, j) => { props[i] = { owner, houses: n % 2 ? 5 : j + 1, mortgaged: false }; });
+    COUNTRY_CELLS[k].forEach((i, j) => { props[i] = { owner, houses: n % 2 ? 5 : j + 1 }; });
   });
   AIRPORTS.forEach((c, n) => { props[c.index].owner = n % 2 ? 'me' : 'tokyo'; });
   // l'hôtel visé est déjà détruit dans l'état ; la cinématique le garde debout jusqu'à l'impact
@@ -121,6 +124,9 @@ export default function Demo() {
   const [fightMode, setFightMode] = useState(null); // 'human' | 'bots'
   const [banner, setBanner] = useState(null);
   const [statsState, setStatsState] = useState(null);
+  const [smnColor, setSmnColor] = useState(PLAYER_COLORS[0]);
+  const [smn, setSmn] = useState(null);
+  const [casino, setCasino] = useState(null); // { money, spins, last }
   const bannerIdx = useRef(0);
   const [boardState, setBoardState] = useState(() => makeDemoState(null));
   const [positions] = useAnimatedPositions(boardState.players);
@@ -146,6 +152,15 @@ export default function Demo() {
       turn: { pid: 'me', dice: d, rollId: (s.turn?.rollId || 0) + 1 },
       players: s.players.map((p) => (p.id === 'me' ? { ...p, pos: (p.pos + d[0] + d[1]) % 40 } : p)),
     }));
+  }
+
+  // casino local : même tirage et mêmes gains que sur le serveur
+  function casinoSpin(bet) {
+    setCasino((c) => {
+      const reels = [0, 1, 2].map(() => Math.floor(Math.random() * CASINO.SYMBOLS.length));
+      const win = casinoPayout(reels, bet);
+      return { money: c.money - bet + win, spins: c.spins + 1, last: { id: Date.now(), reels, bet, win } };
+    });
   }
 
   const fightState = fight && {
@@ -197,6 +212,23 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🎰 Casino (machine à sous)</h3>
+          <p className="muted">Misez la somme de votre choix, {CASINO.MAX_SPINS} parties max par visite. 3 symboles identiques = jackpot.</p>
+          <button className="btn primary" onClick={() => setCasino({ money: 1500, spins: 0, last: null })}>▶ Entrer au casino (1 500 $)</button>
+        </section>
+
+        <section className="panel">
+          <h3>💊 « Say my name » (cinématique 3D)</h3>
+          <p className="muted">Montrée à tous quand un trafiquant livre sa marchandise en passant par Départ.</p>
+          <div className="color-picker">
+            {PLAYER_COLORS.map((c) => (
+              <button key={c} className={`swatch ${smnColor === c ? 'active' : ''}`} style={{ background: c }} onClick={() => setSmnColor(c)} title="Couleur de votre pion" />
+            ))}
+          </div>
+          <button className="btn primary" onClick={() => setSmn({ id: Date.now(), type: 'delivery', pid: 'me' })}>▶ Lancer la cinématique</button>
+        </section>
+
+        <section className="panel">
           <h3>⚔️ Combat du goulag</h3>
           <p className="muted">ZQSD / WASD / flèches pour bouger, souris pour viser, clic pour tirer, Espace pour esquiver.</p>
           <button className="btn primary" onClick={() => setFightMode('human')}>▶ Jouer contre un bot</button>
@@ -232,6 +264,24 @@ export default function Demo() {
       </div>
 
       {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}
+      {casino && (
+        <div className="modal-backdrop" onClick={() => setCasino(null)}>
+          <div className="casino-modal" onClick={(e) => e.stopPropagation()}>
+            <SlotMachine spin={casino.last} spinsDone={casino.spins} interactive maxBet={Math.max(0, casino.money)}
+              player={{ name: `Vous · ${casino.money.toLocaleString('fr-FR')} $`, color: '#fde047' }} size={84}
+              onSpin={casinoSpin} onLeave={() => setCasino(null)} />
+            {casino.spins >= CASINO.MAX_SPINS && (
+              <button className="btn" onClick={() => setCasino((c) => ({ ...c, spins: 0 }))}>🔄 Nouvelle visite</button>
+            )}
+          </div>
+        </div>
+      )}
+      {smn && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <SayMyNameCinematic event={smn} onEnd={() => setSmn(null)}
+            state={{ ...boardState, players: boardState.players.map((p) => (p.id === 'me' ? { ...p, color: smnColor } : p)) }} />
+        </Suspense>
+      )}
       {arrest && <BustedCinematic event={arrest} state={hijackState} positions={{}} onEnd={() => setArrest(null)} />}
       {hijack && (
         <HijackCinematic event={hijack} state={hijackState} positions={{}} onEnd={() => setHijack(null)} />

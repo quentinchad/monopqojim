@@ -6,6 +6,7 @@ import TradeModal from './TradeModal.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
 import BustedCinematic from './BustedCinematic.jsx';
+import TradeOfferModal from './TradeOfferModal.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
 import EndGameStats from './EndGameStats.jsx';
@@ -18,6 +19,9 @@ import { toast, act } from '../net.js';
 import { inviteLink } from '../embed.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
+const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
+const SAY_MY_NAME_MS = 18000;
+const CINEMATICS = ['busted', 'hijack', 'delivery'];
 
 // File d'attente des évènements marquants (cartes, détournements, goulag…)
 function useEventQueue(events, paused) {
@@ -44,7 +48,7 @@ function useEventQueue(events, paused) {
   useEffect(() => {
     if (!head || activeId === head.id || paused) return;
     // une annonce bloquée trop longtemps par les déplacements n'a plus d'intérêt (sauf les cinématiques)
-    const cinematicEvent = head.type === 'busted' || head.type === 'hijack';
+    const cinematicEvent = CINEMATICS.includes(head.type);
     if (!cinematicEvent && Date.now() - headSince.current.t > 7000) { setQueue((q) => q.slice(1)); return; }
     setActiveId(head.id);
   }, [head?.id, paused, activeId]);
@@ -54,7 +58,8 @@ function useEventQueue(events, paused) {
     // durées d'affichage : assez longues pour que chacun ait le temps de lire
     const ms = ev?.type === 'hijack' ? (HIJACK_DURATION + 4) * 1000
       : ev?.type === 'busted' ? (BUSTED_DURATION + 4) * 1000
-        : ev?.type === 'card' ? 6500 : 5000;
+        : ev?.type === 'delivery' ? SAY_MY_NAME_MS + 4000
+          : ev?.type === 'card' ? 6500 : 5000;
     const to = setTimeout(() => remove(activeId), ms);
     return () => clearTimeout(to);
   }, [activeId]);
@@ -112,7 +117,7 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // la cinématique remplace la bannière pour les détournements
-  const cinematic = (event?.type === 'hijack' && event.from != null) || event?.type === 'busted' ? event : null;
+  const cinematic = (event?.type === 'hijack' && event.from != null) || event?.type === 'busted' || event?.type === 'delivery' ? event : null;
   const bannerEvent = cinematic ? null : event;
 
   const copyLink = async () => {
@@ -179,10 +184,19 @@ export default function Game({ state, me, onLeave }) {
       </aside>
 
       {selected != null && <CellCard state={state} me={me} index={selected} onClose={() => setSelected(null)} />}
-      {trade && <TradeModal state={state} me={me} initialTarget={trade === true ? null : trade} onClose={() => setTrade(null)} />}
+      {trade && (
+        <TradeModal state={state} me={me} counter={trade.counter} onClose={() => setTrade(null)}
+          initialTarget={trade === true || trade.counter ? trade.counter?.from ?? null : trade} />
+      )}
       {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
       {cinematic?.type === 'hijack' && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {cinematic?.type === 'busted' && <BustedCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
+      {cinematic?.type === 'delivery' && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <SayMyNameCinematic event={cinematic} state={state} onEnd={nextEvent} />
+        </Suspense>
+      )}
+      <TradeOfferModal state={state} me={me} paused={!!cinematic} onCounter={(t) => setTrade({ counter: t })} />
       {state.fight && <FightOverlay key={state.fight.ids.join()} state={state} me={me} />}
     </div>
   );

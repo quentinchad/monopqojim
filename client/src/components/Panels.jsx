@@ -4,6 +4,7 @@ import { act } from '../net.js';
 import { money, playerById, ownsCountry } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
 import { TradeSummary } from './TradeModal.jsx';
+import { openTradeOffer } from './TradeOfferModal.jsx';
 
 export function PlayersPanel({ state, me, onTrade }) {
   return (
@@ -26,13 +27,13 @@ export function PlayersPanel({ state, me, onTrade }) {
               </div>
               <div className="owned-dots">
                 {owned.map((i) => (
-                  <i key={i} title={BOARD[i].name} style={{ background: BOARD[i].country ? COUNTRIES[BOARD[i].country].color : '#94a3b8', opacity: state.props[i].mortgaged ? 0.35 : 1 }} />
+                  <i key={i} title={BOARD[i].name} style={{ background: BOARD[i].country ? COUNTRIES[BOARD[i].country].color : '#94a3b8' }} />
                 ))}
               </div>
             </div>
             <div className="pmoney">
               <div className={p.money < 0 ? 'neg' : ''}>{p.status === 'alive' ? money(p.money) : p.status === 'goulag' ? 'Goulag' : 'Éliminé'}</div>
-              {p.status === 'alive' && <small title="Patrimoine (argent + hypothèques + revente des bâtiments)">≈ {money(p.netWorth)}</small>}
+              {p.status === 'alive' && <small title="Patrimoine (argent + revente des propriétés et des bâtiments)">≈ {money(p.netWorth)}</small>}
             </div>
             {p.id !== me && p.status === 'alive' && playerById(state, me)?.status === 'alive' && state.phase === 'playing' && (
               <button className="btn tiny" title="Proposer un échange" onClick={() => onTrade(p.id)}>🤝</button>
@@ -53,8 +54,10 @@ export function TradesPanel({ state, me }) {
       <h4>Échanges</h4>
       {mine.map((t) => (
         <div key={t.id} className={`trade-item ${t.to === me ? 'incoming' : ''}`}>
+          <small className="muted">{t.to === me ? (t.counter ? '🔁 Contre-proposition reçue' : '📥 Proposition reçue') : '📤 En attente de réponse'}</small>
           <TradeSummary state={state} trade={t} />
           <div className="row">
+            {t.to === me && <button className="btn tiny" onClick={() => openTradeOffer(t.id)}>👁 Voir</button>}
             {t.to === me && <button className="btn tiny primary" onClick={() => act('acceptTrade', { id: t.id })}>Accepter</button>}
             <button className="btn tiny" onClick={() => act('declineTrade', { id: t.id })}>{t.to === me ? 'Refuser' : 'Annuler'}</button>
           </div>
@@ -89,9 +92,9 @@ export function MyProperties({ state, me, onCell }) {
             {list.map((i) => {
               const pr = state.props[i];
               return (
-                <div key={i} className={`pg-item ${pr.mortgaged ? 'mortgaged' : ''}`} onClick={() => onCell(i)}>
+                <div key={i} className="pg-item" onClick={() => onCell(i)}>
                   {BOARD[i].name}
-                  <span>{pr.houses === 5 ? '🏨' : '🏠'.repeat(pr.houses)}{pr.mortgaged && ' (hyp.)'}</span>
+                  <span>{pr.houses === 5 ? '🏨' : '🏠'.repeat(pr.houses)}</span>
                 </div>
               );
             })}

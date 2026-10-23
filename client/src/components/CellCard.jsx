@@ -1,5 +1,5 @@
 import React from 'react';
-import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS, RULES, housePrice, hijackCost } from '../../../shared/board.js';
+import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS, RULES, CASINO, housePrice, hijackCost, resaleValue } from '../../../shared/board.js';
 import { act } from '../net.js';
 import { money, playerById, ownsCountry, groupHasBuildings } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
@@ -12,6 +12,7 @@ const DESCRIPTIONS = {
   chance: 'Tirez une carte Chance. Attention au trafic de drogue et aux échanges forcés !',
   chest: 'Tirez une carte Caisse de communauté.',
   tax: 'Payez la taxe à la banque (ou à la cagnotte du Parc gratuit).',
+  casino: `Machine à sous : misez la somme de votre choix, jusqu’à ${CASINO.MAX_SPINS} parties par arrêt. Trois symboles identiques : mise × 5 à × 20 (7️⃣ = × 20). Deux identiques : mise × ${CASINO.PAIR}.`,
 };
 
 export default function CellCard({ state, me, index, onClose }) {
@@ -46,7 +47,6 @@ export default function CellCard({ state, me, index, onClose }) {
   }
 
   const canBuild = mine && cell.type === 'city' && myTurn && ownsCountry(state, me, cell.country) && prop.houses < 5;
-  const unmortgageCost = Math.round((cell.mortgage || 0) * (1 + RULES.MORTGAGE_INTEREST));
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -74,13 +74,13 @@ export default function CellCard({ state, me, index, onClose }) {
           {cell.price && (
             <div className="cc-info">
               <span>Prix : {money(cell.price)}</span>
-              <span>Hypothèque : {money(cell.mortgage)}</span>
+              <span>Revente à la banque : {money(resaleValue(cell))}</span>
             </div>
           )}
           {cell.price && (
             <div className="cc-owner">
               {owner
-                ? <>Propriétaire : <b style={{ color: owner.color }}>{owner.name}</b>{prop.mortgaged && ' (hypothéquée)'}{prop.houses === 5 ? ' · 🏨 hôtel' : prop.houses ? ` · 🏠 × ${prop.houses}` : ''}</>
+                ? <>Propriétaire : <b style={{ color: owner.color }}>{owner.name}</b>{prop.houses === 5 ? ' · 🏨 hôtel' : prop.houses ? ` · 🏠 × ${prop.houses}` : ''}</>
                 : 'Disponible à l’achat'}
             </div>
           )}
@@ -92,12 +92,14 @@ export default function CellCard({ state, me, index, onClose }) {
                     onClick={() => act('build', { cell: index })}>
                     {prop.houses === 4 ? 'Construire un hôtel' : 'Construire une maison'} ({money(housePrice(cell))})
                   </button>
-                  <button className="btn" disabled={!prop.houses} onClick={() => act('sell', { cell: index })}>Vendre ({money(housePrice(cell) / 2)})</button>
+                  <button className="btn" disabled={!prop.houses} onClick={() => act('sell', { cell: index })}>Vendre un bâtiment (+{money(housePrice(cell) / 2)})</button>
                 </>
               )}
-              {prop.mortgaged
-                ? <button className="btn" onClick={() => act('unmortgage', { cell: index })}>Lever l’hypothèque ({money(unmortgageCost)})</button>
-                : <button className="btn" disabled={groupHasBuildings(state, index)} onClick={() => act('mortgage', { cell: index })}>Hypothéquer (+{money(cell.mortgage)})</button>}
+              <button className="btn danger" disabled={groupHasBuildings(state, index)}
+                title={groupHasBuildings(state, index) ? 'Vendez d’abord les bâtiments du pays' : 'La propriété redevient libre à l’achat'}
+                onClick={() => confirm(`Revendre ${cell.name} à la banque pour ${money(resaleValue(cell))} ?`) && act('sellProperty', { cell: index })}>
+                Revendre à la banque (+{money(resaleValue(cell))})
+              </button>
             </div>
           )}
           {mine && cell.type === 'city' && !ownsCountry(state, me, cell.country) && (

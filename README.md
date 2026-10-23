@@ -39,6 +39,12 @@ Autres options : `docker build -t monopqojim .` puis `docker run -p 3000:3000 mo
 ### Plateau
 8 pays : 🇧🇷 Brésil, 🇨🇳 Chine, 🇪🇸 Espagne, 🇩🇪 Allemagne, 🇮🇹 Italie, 🇯🇵 Japon, 🇫🇷 France, 🇺🇸 États-Unis (2 ou 3 villes chacun). Pour construire des maisons puis un hôtel, il faut posséder **toutes les villes du pays** (construction uniforme, comme au Monopoly classique). Les cases achetées prennent la couleur de leur propriétaire (contour + fond teinté en 2D, bordure lumineuse en 3D) et affichent le loyer actuel.
 
+### 🎰 Casino de Macao
+La case Casino remplace Shanghai (la Chine compte donc 2 villes : Pékin et Hong Kong). Le joueur qui s’y arrête peut jouer à la **machine à sous** : il mise la somme de son choix (au plus son argent), **5 parties maximum** par arrêt, et peut partir quand il veut. Les 3 rouleaux sont tirés au hasard : **3 symboles identiques** rapportent la mise × 5 à × 20 selon le symbole (7️⃣ = × 20), **2 identiques** rapportent la mise × 1,5, sinon la mise est perdue (espérance ≈ 95 % de la mise). Tous les joueurs voient les rouleaux tourner.
+
+### 🏦 Pas d’hypothèque
+Il n’y a plus d’hypothèque : pour trouver de l’argent, on vend ses bâtiments (moitié du prix) puis on **revend ses propriétés à la banque** pour la moitié de leur prix d’achat. Elles redeviennent libres à l’achat.
+
 ### ✈️ Aéroports et détournements
 Les gares sont remplacées par 4 aéroports (Dubaï, Charles de Gaulle, JFK, Haneda), loyers 25/50/100/200 $. Quand un joueur s’arrête sur un aéroport (acheté ou non), il peut **détourner un avion** pour détruire l’hôtel adverse le plus proche sur le plateau. Coût : **50 % du prix de construction de cet hôtel** (5 × prix d’une maison du pays), payé à la banque. La ville redevient un terrain nu.
 
@@ -49,7 +55,7 @@ Chaque envoi en prison (case « Allez en prison », carte, 3 doubles, trafiquant
 
 ### 💊 Trafic de drogue (carte Chance)
 Le joueur qui tire la carte transporte de la drogue :
-- au prochain passage par **Départ**, il touche **+300 $** en plus des 200 $ et le trafic s’arrête ;
+- au prochain passage par **Départ**, il touche **+300 $** en plus des 200 $ et le trafic s’arrête. Une **cinématique 3D « Say my name »** (~18 s) se joue alors chez tous les joueurs : dans le désert, Heisenberg (pion à chapeau pork-pie, lunettes et bouc) fait face au pion du joueur, entouré de sa voiture, de Mike et Jesse et des 4×4 noirs d’en face ;
 - s’il est **envoyé en prison** avant (case « Allez en prison », carte, 3 doubles — et, option activée par défaut, s’il s’arrête sur la case Prison elle-même), la peine est **doublée : 6 tours**, sans caution ni carte « libéré de prison » : **seul un double le libère**.
 
 ### ⛓️ Goulag
@@ -63,11 +69,15 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 
 **Thèmes visuels** : 5 thèmes au choix (🌃 Nuit violette, 🌳 Classique jour, 🌊 Océan, 🌆 Néon, 🏜️ Désert), sélectionnables à tout moment. Chacun change les couleurs de l’interface et du plateau, et en 3D / FPS le ciel, la lumière et le décor autour du plateau (ville illuminée, parc arboré, île tropicale avec bateaux, ville néon, désert avec pyramides). Le choix est propre à chaque joueur.
 
+**Échanges** : une proposition reçue s’ouvre dans une fenêtre chez le destinataire (avec un carillon), qui peut accepter, refuser ou **négocier** : la contre-proposition, pré-remplie, remplace l’offre reçue et s’ouvre à son tour chez l’autre joueur. « Répondre plus tard » la laisse dans le panneau Échanges (bouton 👁 Voir). L’auteur est prévenu d’un refus.
+
+**Argent de départ** : de 500 $ à 3 000 $, réglable dans le salon.
+
 **Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
 
-**Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, arrestation « BUSTED », cartes et annonces, dés, statistiques d’une partie simulée entre bots).
+**Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, « Say my name », machine à sous du casino, duel du goulag contre un bot ou entre bots, arrestation « BUSTED », cartes et annonces, dés, statistiques d’une partie simulée entre bots).
 
-Enchères (proposées au joueur qui refuse d’acheter), cagnotte du Parc gratuit (option), hypothèques, échanges libres entre joueurs (argent, villes, cartes prison), faillite, bots pour compléter la partie, reconnexion après rafraîchissement.
+Enchères (proposées au joueur qui refuse d’acheter), cagnotte du Parc gratuit (option), revente à la banque, échanges libres entre joueurs (argent, villes, cartes prison), faillite, bots pour compléter la partie, reconnexion après rafraîchissement.
 
 ## Structure
 
@@ -77,6 +87,6 @@ server/   index.js (Express + Socket.IO), game.js (moteur de règles), fight.js 
 client/   React + Vite : plateau 2D, vue 3D three.js, lobby, échanges, combat
 ```
 
-Les constantes de règles (bonus du trafic, ratio du détournement, argent du goulag…) sont dans `shared/board.js` (`RULES`).
+Les constantes de règles (bonus du trafic, ratio du détournement, argent du goulag, revente…) sont dans `shared/board.js` (`RULES`), et celles du casino (symboles, gains, nombre de parties) dans `CASINO`.
 
 Pour tester les règles spéciales en local : `node server/index.js --debug` active des commandes de test (jamais en production).

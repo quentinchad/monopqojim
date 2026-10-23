@@ -3,6 +3,7 @@ import { BOARD, COUNTRIES, RULES } from '../../../shared/board.js';
 import { act } from '../net.js';
 import { money, playerById } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
+import SlotMachine from './SlotMachine.jsx';
 
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 
@@ -109,7 +110,7 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
     body = (
       <div className="debt">
         <div>💸 Vous êtes endetté de <b>{money(-meP.money)}</b>.</div>
-        <small>Vendez des bâtiments ou hypothéquez des propriétés (cliquez sur vos cases), ou déclarez faillite.</small>
+        <small>Vendez des bâtiments ou revendez des propriétés à la banque (cliquez sur vos cases), ou déclarez faillite.</small>
         <button className="btn danger" onClick={() => confirm('Déclarer faillite ?') && act('bankrupt')}>Déclarer faillite</button>
       </div>
     );
@@ -129,6 +130,11 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
             <button className="btn ghost" onClick={() => act('decline')}>Ne pas acheter</button>
           </div>
         </div>
+      );
+    } else if (pend?.type === 'casino') {
+      body = (
+        <SlotMachine spin={pend.last} spinsDone={pend.spins} interactive maxBet={Math.max(0, meP.money)} player={meP}
+          onSpin={(bet) => act('casinoSpin', { bet })} onLeave={() => act('casinoLeave')} />
       );
     } else if (pend?.type === 'hijack') {
       const target = BOARD[pend.target];
@@ -163,6 +169,8 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
     } else if (t.phase === 'done') {
       body = <button className="btn primary big" onClick={() => act('endTurn')}>Terminer le tour ➜</button>;
     }
+  } else if (cur && t.pending?.type === 'casino') {
+    body = <SlotMachine spin={t.pending.last} spinsDone={t.pending.spins} player={cur} size={60} />;
   } else if (cur) {
     body = (
       <div className="status-msg">
@@ -175,7 +183,7 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
 
   return (
     <div className="center-controls">
-      {state.phase !== 'ended' && <Dice turn={t} />}
+      {state.phase !== 'ended' && !(t?.pending?.type === 'casino' && !animating) && <Dice turn={t} />}
       {myTurn && state.phase === 'playing' && !state.auction && <div className="your-turn">C’est votre tour !</div>}
       {body}
     </div>

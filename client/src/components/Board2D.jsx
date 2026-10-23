@@ -4,7 +4,7 @@ import { cellRect, cellCenter, pct, tokenOffset, CORNER, TOTAL } from '../layout
 import { flagSvg } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 
-const ICONS = { chance: '❓', chest: '📦', tax: '💸', airport: '✈️' };
+const ICONS = { chance: '❓', chest: '📦', tax: '💸', airport: '✈️', casino: '🎰' };
 
 function Houses({ n }) {
   if (!n) return null;
@@ -16,7 +16,7 @@ function CellContent({ cell, state }) {
   const prop = state.props[cell.index];
   const owner = prop?.owner && playerById(state, prop.owner);
   const priceLine = owner
-    ? <div className="owner-tag" style={{ background: owner.color }}>{prop.mortgaged ? 'Hypothéquée' : currentRent(state, cell.index)}</div>
+    ? <div className="owner-tag" style={{ background: owner.color }}>{currentRent(state, cell.index)}</div>
     : cell.price ? <div className="price">{money(cell.price)}</div> : null;
 
   switch (cell.type) {
@@ -50,6 +50,14 @@ function CellContent({ cell, state }) {
         <div className="cbody">
           <div className="cicon big">{ICONS[cell.type]}</div>
           <div className="cname">{cell.type === 'chance' ? 'Chance' : 'Caisse'}</div>
+        </div>
+      );
+    case 'casino':
+      return (
+        <div className="cbody casino-cell">
+          <div className="cicon big">{ICONS.casino}</div>
+          <div className="cname">Casino</div>
+          <div className="price">Macao</div>
         </div>
       );
     case 'tax':
@@ -94,7 +102,7 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
         const owner = prop?.owner && playerById(state, prop.owner);
         const cls = [
           'cell', `side-${r.side}`, `t-${cell.type}`,
-          owner && 'owned', prop?.mortgaged && 'mortgaged', highlights[cell.index],
+          owner && 'owned', highlights[cell.index],
         ].filter(Boolean).join(' ');
         return (
           <div key={cell.index} className={cls} onClick={() => onCellClick(cell.index)}

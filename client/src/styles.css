@@ -160,7 +160,6 @@ small { color: var(--muted); }
 .pg-head small.full { color: var(--ok); font-weight: 900; }
 .pg-item { display: flex; justify-content: space-between; padding: 5px 10px 5px 22px; cursor: pointer; }
 .pg-item:hover { background: rgba(255,255,255,.04); }
-.pg-item.mortgaged { color: var(--muted); text-decoration: line-through; }
 .flag { display: inline-block; width: 1.9em; height: 1.25em; border-radius: 2px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0,0,0,.25); flex-shrink: 0; }
 
 /* ---------- plateau 2D ---------- */
@@ -178,7 +177,6 @@ small { color: var(--muted); }
   background: linear-gradient(color-mix(in srgb, var(--owner) 30%, var(--cell)), color-mix(in srgb, var(--owner) 18%, var(--cell)));
   box-shadow: inset 0 0 0 0.28em var(--owner);
 }
-.cell.mortgaged .cbody, .cell.mortgaged .band { filter: grayscale(.8) brightness(.6); }
 .band { flex: 0 0 24%; display: flex; align-items: center; justify-content: center; gap: .3em; position: relative; }
 .side-left .band, .side-right .band { flex-direction: column; }
 .band .flag { width: 2.1em; height: 1.4em; }
@@ -466,3 +464,102 @@ small { color: var(--muted); }
   animation: bustedIn .45s cubic-bezier(.2,1.6,.4,1) both; }
 .busted-sub { margin-top: 8px; color: #fff; font-size: 18px; font-weight: 800; animation: fadeIn .6s .3s both; }
 @keyframes bustedIn { from { transform: scale(2.2); opacity: 0; } }
+
+/* ---------- casino : machine à sous ---------- */
+.slot-machine {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 380px;
+  padding: 10px 12px 12px; border-radius: 22px 22px 14px 14px;
+  background: linear-gradient(180deg, #7f1d1d, #450a0a 70%, #2a0505);
+  border: 3px solid #f5c542; box-shadow: 0 0 0 3px #7c5a0a, 0 14px 40px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.18);
+  color: #fff7e0;
+}
+.slot-top { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.slot-lights { display: flex; justify-content: space-between; width: 100%; padding: 0 6px; }
+.slot-lights i { width: 8px; height: 8px; border-radius: 50%; background: #fde68a; box-shadow: 0 0 8px #fbbf24; animation: slot-blink .7s infinite alternate; }
+@keyframes slot-blink { from { opacity: 1; } to { opacity: .2; } }
+.slot-title { font-weight: 900; letter-spacing: 2px; font-size: 17px; color: #fde047; text-shadow: 0 0 10px #f59e0b, 0 2px 0 #7c2d12; }
+.slot-player { font-size: 12px; }
+.slot-body { display: flex; align-items: center; gap: 8px; }
+.slot-window {
+  position: relative; display: flex; gap: 6px; padding: 8px; border-radius: 12px;
+  background: linear-gradient(180deg, #1c1917, #0c0a09); border: 3px solid #b45309; box-shadow: inset 0 0 18px rgba(0,0,0,.9);
+}
+.reel { overflow: hidden; border-radius: 8px; background: linear-gradient(180deg, #d6d3d1, #fff 35%, #fff 65%, #d6d3d1); box-shadow: inset 0 8px 10px rgba(0,0,0,.35), inset 0 -8px 10px rgba(0,0,0,.35); }
+.reel-strip { will-change: transform; }
+.reel-strip.moving .reel-sym { filter: blur(.6px); }
+.reel-sym { display: flex; align-items: center; justify-content: center; line-height: 1; }
+.slot-payline { position: absolute; left: 4px; right: 4px; top: 50%; height: 2px; background: rgba(239,68,68,.75); box-shadow: 0 0 6px #ef4444; pointer-events: none; }
+.slot-lever { position: relative; width: 16px; height: 86px; }
+.slot-lever i { position: absolute; left: 6px; top: 12px; width: 5px; height: 70px; background: linear-gradient(90deg, #9ca3af, #f3f4f6, #9ca3af); border-radius: 3px; transform-origin: 50% 100%; transition: transform .2s; }
+.slot-lever b { position: absolute; left: 0; top: 0; width: 17px; height: 17px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fca5a5, #dc2626 60%, #7f1d1d); transition: transform .2s; }
+.slot-lever.pulled i { transform: scaleY(-.2); }
+.slot-lever.pulled b { transform: translateY(66px); }
+.slot-result { position: relative; min-height: 26px; font-size: 16px; font-weight: 900; }
+.slot-result .won { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,.6); }
+.slot-result .lost { color: #fca5a5; }
+.slot-result .spinning { color: #fde68a; animation: slot-blink .5s infinite alternate; }
+.slot-result small { color: #fde68a; }
+.slot-machine.win { animation: slot-win .5s 3; }
+.slot-machine.jackpot { animation: slot-win .35s 8; }
+@keyframes slot-win { 50% { box-shadow: 0 0 0 3px #7c5a0a, 0 0 50px #fde047, inset 0 2px 0 rgba(255,255,255,.18); } }
+.coins { position: absolute; left: -60px; right: -60px; bottom: 0; height: 0; pointer-events: none; }
+.coins i { position: absolute; bottom: 0; font-style: normal; font-size: 20px; animation: coin-up 1.4s ease-out forwards; opacity: 0; }
+@keyframes coin-up { 0% { transform: translateY(0) scale(.6); opacity: 1; } 100% { transform: translateY(-140px) rotate(360deg); opacity: 0; } }
+.slot-paytable { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; font-size: 11px; color: #fde68a; opacity: .85; }
+.slot-controls { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.slot-controls small { color: #fde68a; }
+.bet-input { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+.bet-input input { width: 90px; padding: 6px 8px; }
+.slot-machine .muted { color: #e7c9a0; }
+.cbody.casino-cell .cicon { filter: drop-shadow(0 0 6px #f59e0b); }
+.cell.t-casino { background: linear-gradient(160deg, color-mix(in srgb, #b91c1c 30%, var(--cell)), var(--cell)); }
+.casino-modal { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+/* ---------- cinématique « Say my name » ---------- */
+.smn .smn-grade { position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse at center, transparent 55%, rgba(60,30,0,.35) 100%), linear-gradient(rgba(255,190,90,.08), rgba(255,170,60,.12)); mix-blend-mode: multiply; }
+.smn-place { position: absolute; left: 4vw; bottom: calc(9vh + 24px); z-index: 3; color: #fff; font-style: italic; font-size: 18px; letter-spacing: .5px; text-shadow: 0 2px 6px #000; animation: fadeIn 1s ease-out; }
+.smn-sub { position: absolute; left: 50%; bottom: calc(9vh + 26px); transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #fff; font-size: clamp(20px, 3vw, 34px); font-weight: 800; text-shadow: 0 2px 4px #000, 0 0 12px #000; text-align: center; max-width: 90%; animation: fadeIn .25s ease-out; }
+.smn-sub small { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; }
+.smn-title { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: rgba(0,0,0,.35); animation: fadeIn 1.2s ease-out; pointer-events: none; }
+.smn-logo { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(40px, 8vw, 96px); font-weight: 700; color: #f1f5f9; display: flex; align-items: flex-end; text-shadow: 0 4px 18px #000; }
+.smn-logo .el { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: .04em; background: linear-gradient(160deg, #3f7a3a, #1f4d22); border: 2px solid #a7f3a0; color: #fff; box-shadow: 0 0 30px rgba(74,222,128,.45); }
+.smn-logo .el i { position: absolute; top: .08em; right: .12em; font-size: .22em; font-style: normal; font-family: Nunito, sans-serif; }
+.smn-gain { color: #fff; font-size: clamp(16px, 2.2vw, 24px); background: rgba(0,0,0,.55); padding: 10px 20px; border-radius: 14px; border: 1px solid #4ade80; }
+.smn-gain .plus { color: #4ade80; }
+
+/* ---------- proposition d'échange reçue ---------- */
+.trade-offer-backdrop { z-index: 80; }
+.trade-offer {
+  width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto;
+  background: var(--panel); border: 2px solid var(--from, var(--accent)); border-radius: 20px; padding: 20px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--from, var(--accent)) 18%, transparent), 0 30px 80px rgba(0,0,0,.6);
+  display: flex; flex-direction: column; gap: 14px; animation: offer-pop .35s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes offer-pop { from { transform: scale(.85) translateY(20px); opacity: 0; } }
+.to-head { display: flex; align-items: center; gap: 12px; }
+.to-head .avatar { width: 46px; height: 46px; font-size: 20px; flex: none; }
+.to-kicker { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+.to-title { font-size: 19px; }
+.offer-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; }
+.offer-side { background: var(--panel-2); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); }
+.offer-side h4 { margin: 0; font-size: 14px; }
+.offer-side.gain h4 { color: #4ade80; }
+.offer-side.loss h4 { color: #fca5a5; }
+.offer-money { font-size: 22px; font-weight: 900; }
+.offer-cards { font-size: 13px; }
+.offer-empty { font-style: italic; }
+.offer-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+.offer-tile { width: 112px; background: var(--deep, #120d24); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; text-align: center; }
+.ot-band { background: var(--band); height: 26px; display: flex; align-items: center; justify-content: center; }
+.ot-band .flag svg { width: 26px; height: 17px; display: block; border-radius: 2px; }
+.ot-name { font-weight: 900; font-size: 13px; padding: 5px 4px 0; }
+.ot-sub { font-size: 11px; color: var(--muted); padding: 0 4px 4px; }
+.ot-complete { font-size: 11px; color: #4ade80; font-weight: 900; padding: 0 4px 6px; }
+.to-actions { gap: 10px; }
+.to-later { align-self: center; color: var(--muted); }
+.trade-item .muted { display: block; margin-bottom: 4px; }
+@media (max-width: 560px) {
+  .offer-grid { grid-template-columns: 1fr; }
+  .offer-grid .trade-arrow { transform: rotate(90deg); justify-self: center; }
+}
+.trade-targets[hidden] { display: none; }
