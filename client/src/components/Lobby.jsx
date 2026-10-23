@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { PLAYER_COLORS } from '../../../shared/board.js';
 import { lobby, toast } from '../net.js';
 import ThemePicker from './ThemePicker.jsx';
+import { inviteLink } from '../embed.js';
 
 export default function Lobby({ state, me, onLeave }) {
   const isHost = state.hostId === me;
   const meP = state.players.find((p) => p.id === me);
   const s = state.settings;
-  const link = `${window.location.origin}/room/${state.id}`;
+  const link = inviteLink(state.id);
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {

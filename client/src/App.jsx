@@ -4,6 +4,7 @@ import Home from './components/Home.jsx';
 import Lobby from './components/Lobby.jsx';
 import Game from './components/Game.jsx';
 import Demo from './components/Demo.jsx';
+import { notifyHost, notifyReady } from './embed.js';
 
 const roomFromUrl = () => {
   const m = window.location.pathname.match(/\/room\/([A-Za-z0-9]+)/);
@@ -24,7 +25,14 @@ export default function App() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
   }, []);
 
+  // en mode intégré, la page hôte suit la partie en cours pour garder une adresse partageable
   useEffect(() => {
+    if (window.location.pathname.startsWith('/demo')) notifyHost({ demo: true });
+    else notifyHost(session ? { room: session.roomId } : {});
+  }, [session?.roomId]);
+
+  useEffect(() => {
+    notifyReady();
     onToast(pushToast);
     const onState = (s) => setState(s);
     const onConnect = async () => {

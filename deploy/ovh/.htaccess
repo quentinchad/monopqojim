@@ -1,0 +1,6 @@
+# Page d'intégration de Monopqojim (dossier www/monopqojim sur l'hébergement OVH)
+DirectoryIndex index.html
+RewriteEngine On
+# /monopqojim/demo et toute autre sous-adresse affichent la même page
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [L]

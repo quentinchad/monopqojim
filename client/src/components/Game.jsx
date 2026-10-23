@@ -13,6 +13,7 @@ import { PlayersPanel, TradesPanel, MyProperties, LogChat } from './Panels.jsx';
 import { useAnimatedPositions, useElementSize } from '../hooks.js';
 import { playerById } from '../gameInfo.js';
 import { toast, act } from '../net.js';
+import { inviteLink } from '../embed.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 
@@ -106,7 +107,7 @@ export default function Game({ state, me, onLeave }) {
   const bannerEvent = cinematic ? null : event;
 
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(`${window.location.origin}/room/${state.id}`); toast('Lien copié !', 'info'); } catch { /* ignore */ }
+    try { await navigator.clipboard.writeText(inviteLink(state.id)); toast('Lien copié !', 'info'); } catch { /* ignore */ }
   };
 
   const controls = <CenterControls state={state} me={me} onLeave={onLeave} animating={animating} onShowStats={() => setShowStats(true)} />;

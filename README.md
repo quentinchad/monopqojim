@@ -18,12 +18,20 @@ npm start          # http://localhost:3000
 
 Test de robustesse du moteur (200 parties bots contre bots) : `npm test`.
 
-## Héberger
+## Mise en ligne (déploiement automatique)
 
-Le serveur Node (Express + Socket.IO) sert le client compilé et écoute sur `PORT` (3000 par défaut). Il faut un hébergeur qui supporte les WebSockets et un processus Node persistant (Render, Railway, Fly.io, un VPS…). Les parties sont gardées en mémoire : une seule instance suffit.
+Le jeu est en ligne sur **https://www.quentin-chirat.com/monopqojim**.
 
-- **Docker** : `docker build -t monopqojim .` puis `docker run -p 3000:3000 monopqojim`
-- **Render / Railway** : commande de build `npm install && npm run build`, commande de démarrage `npm start`.
+- **Render** fait tourner le serveur Node (`render.yaml`). Chaque push sur `main` déclenche automatiquement un nouveau build et un redéploiement. Le plan gratuit se met en veille après 15 min sans visite : le premier chargement suivant prend jusqu’à ~1 min, et les parties en cours sont perdues à la mise en veille.
+- **OVH** (hébergement du site) sert seulement la page `deploy/ovh/` dans le dossier `www/monopqojim/` : elle affiche le jeu en plein écran (iframe), montre un écran d’attente pendant le réveil du serveur et garde dans la barre d’adresse un lien partageable vers la partie (`…/monopqojim?room=CODE`). Elle n’a besoin d’être déposée qu’une fois ; à re-déposer seulement si elle change.
+- La variable `VITE_PUBLIC_URL` (définie dans `render.yaml`) fait pointer les liens d’invitation vers le site plutôt que vers Render. La démo est sur `…/monopqojim/demo`.
+
+Mise en place (une seule fois) :
+1. Sur render.com, se connecter avec GitHub, puis **New > Blueprint** et choisir le dépôt `quentinchad/monopqojim` : Render lit `render.yaml` et crée le service `monopqojim`.
+2. Vérifier l’adresse du service (normalement `https://monopqojim.onrender.com`) ; si elle est différente, l’indiquer dans la variable `GAME` de `deploy/ovh/index.html`.
+3. Déposer `deploy/ovh/index.html` et `deploy/ovh/.htaccess` par FTP dans `www/monopqojim/` sur l’hébergement OVH.
+
+Autres options : `docker build -t monopqojim .` puis `docker run -p 3000:3000 monopqojim`, ou n’importe quel hébergeur Node avec WebSockets (build : `npm install && npm run build`, démarrage : `npm start`).
 
 ## Règles
 

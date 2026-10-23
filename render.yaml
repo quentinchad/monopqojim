@@ -1,0 +1,18 @@
+# Déploiement sur Render (https://render.com) : chaque push sur la branche main redéploie le jeu.
+# Dans Render : New > Blueprint > choisir le dépôt quentinchad/monopqojim.
+services:
+  - type: web
+    name: monopqojim
+    runtime: node
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # adresse publique du jeu intégré sur le site : utilisée pour les liens d'invitation
+      - key: VITE_PUBLIC_URL
+        value: https://www.quentin-chirat.com/monopqojim
