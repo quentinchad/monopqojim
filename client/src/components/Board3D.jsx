@@ -249,7 +249,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     controls.enableDamping = true;
     controls.maxPolarAngle = 1.3;
     controls.minDistance = 5;
-    controls.maxDistance = 34;
+    controls.maxDistance = 30;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0x2a1f4d, 1.1);
     scene.add(hemi);
@@ -402,6 +402,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         c.group.position.y += (targetY - c.group.position.y) * 0.2;
       }
       w.scenery?.update(w.t);
+      // en vue FPS la caméra est sur le plateau : rien à estomper
+      if (w.mode !== 'fps' || w.cine) w.scenery?.fadeOccluders(camera, w.cine ? new THREE.Vector3() : controls.target, dt);
       renderer.render(scene, camera);
     };
     tick();

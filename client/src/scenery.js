@@ -13,6 +13,9 @@ function seeded(seed) {
 }
 
 const GROUND_Y = -0.33;
+// le coin du plateau est à ~9 unités du centre : aucun décor ne doit empiéter en deçà
+const CLEAR = 10.8;
+const BOARD_POINTS = [-6, 0, 6].flatMap((x) => [-6, 0, 6].map((z) => new THREE.Vector3(x, 0.1, z)));
 
 function polar(rand, rMin, rMax) {
   const a = rand() * Math.PI * 2;
@@ -73,13 +76,29 @@ function windowTexture(rand, night) {
   return tex;
 }
 
+// Un bâtiment qui peut masquer le plateau : il devient transparent quand il est entre la caméra et le plateau
+function addOccluder(occluders, objects) {
+  const box = new THREE.Box3();
+  const mats = new Set();
+  for (const o of objects) {
+    o.updateMatrixWorld(true);
+    box.expandByObject(o);
+    o.traverse((c) => {
+      const list = Array.isArray(c.material) ? c.material : c.material ? [c.material] : [];
+      list.forEach((m) => mats.add(m));
+    });
+  }
+  box.expandByScalar(0.3);
+  occluders.push({ box, mats: [...mats], objects, opacity: 1 });
+}
+
 // ---------- ville (nuit) ----------
-function city(g, rand, sc, updaters) {
+function city(g, rand, sc, updaters, occluders) {
   const palette = ['#2a2346', '#1f1a38', '#352b5c', '#241e40', '#2e2750'];
   const roofMat = new THREE.MeshStandardMaterial({ color: '#15112a', roughness: 0.9 });
   const lights = [];
   for (let i = 0; i < 95; i++) {
-    const [x, z] = polar(rand, 11, 36);
+    const [x, z] = polar(rand, 15, 38);
     const w = 1 + rand() * 1.8;
     const d = 1 + rand() * 1.8;
     const h = 2 + rand() ** 1.6 * 11;
@@ -90,18 +109,22 @@ function city(g, rand, sc, updaters) {
       color: palette[i % palette.length], map: tex, roughness: 0.7,
       emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: sc.night ? 0.85 : 0,
     });
-    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, roofMat, roofMat, side, side]);
+    const roof = roofMat.clone();
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, roof, roof, side, side]);
+    const parts = [b];
     b.position.set(x, GROUND_Y + h / 2, z);
     b.rotation.y = rand() * Math.PI;
     g.add(b);
     if (h > 8) {
-      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), roofMat);
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), roof);
       ant.position.set(x, GROUND_Y + h + 0.6, z);
       const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff3b3b' }));
       lamp.position.set(x, GROUND_Y + h + 1.25, z);
       g.add(ant, lamp);
+      parts.push(ant, lamp);
       lights.push({ lamp, phase: rand() * 6 });
     }
+    addOccluder(occluders, parts);
   }
   // routes éclairées autour du plateau
   const road = new THREE.Mesh(new THREE.RingGeometry(8, 9.6, 64), new THREE.MeshStandardMaterial({ color: '#1b1730', roughness: 0.95 }));
@@ -147,7 +170,7 @@ function tree(rand) {
 
 function park(g, rand, updaters) {
   for (let i = 0; i < 130; i++) {
-    const [x, z] = polar(rand, 9, 40);
+    const [x, z] = polar(rand, CLEAR + 0.6, 40);
     const t = tree(rand);
     t.position.set(x, GROUND_Y, z);
     g.add(t);
@@ -234,13 +257,14 @@ function ocean(g, rand, sc, updaters) {
   });
   // île sous le plateau
   const sand = new THREE.MeshStandardMaterial({ color: '#e8d3a2', roughness: 1 });
-  const island = new THREE.Mesh(new THREE.CylinderGeometry(9.6, 11.5, 0.7, 48), sand);
+  const island = new THREE.Mesh(new THREE.CylinderGeometry(12, 13.8, 0.7, 48), sand);
   island.position.y = GROUND_Y - 0.2;
   g.add(island);
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + rand() * 0.3;
     const p = palm(rand);
-    p.position.set(Math.cos(a) * (8 + rand() * 1.2), GROUND_Y + 0.15, Math.sin(a) * (8 + rand() * 1.2));
+    const pr = CLEAR + rand() * 0.8;
+    p.position.set(Math.cos(a) * pr, GROUND_Y + 0.15, Math.sin(a) * pr);
     g.add(p);
   }
   // îles lointaines
@@ -283,7 +307,7 @@ function ocean(g, rand, sc, updaters) {
 }
 
 // ---------- néon ----------
-function neon(g, rand, updaters) {
+function neon(g, rand, updaters, occluders) {
   const grid = new THREE.GridHelper(190, 95, '#ec4899', '#22d3ee');
   grid.position.y = GROUND_Y + 0.01;
   grid.material.transparent = true;
@@ -292,12 +316,12 @@ function neon(g, rand, updaters) {
   const colors = ['#ec4899', '#22d3ee', '#a855f7', '#f472b6', '#34d399'];
   const dark = new THREE.MeshStandardMaterial({ color: '#0b0816', roughness: 0.4, metalness: 0.6 });
   for (let i = 0; i < 85; i++) {
-    const [x, z] = polar(rand, 11, 38);
+    const [x, z] = polar(rand, 15, 40);
     const w = 1 + rand() * 1.8;
     const d = 1 + rand() * 1.8;
     const h = 2 + rand() ** 1.5 * 13;
     const geo = new THREE.BoxGeometry(w, h, d);
-    const b = new THREE.Mesh(geo, dark);
+    const b = new THREE.Mesh(geo, dark.clone());
     b.position.set(x, GROUND_Y + h / 2, z);
     b.rotation.y = rand() * Math.PI;
     const col = colors[i % colors.length];
@@ -312,6 +336,7 @@ function neon(g, rand, updaters) {
       b.add(s);
     }
     g.add(b);
+    addOccluder(occluders, [b]);
   }
   const rings = [];
   for (let i = 0; i < 5; i++) {
@@ -331,8 +356,9 @@ function neon(g, rand, updaters) {
 function desert(g, rand) {
   const sandColors = ['#d9a865', '#e0b373', '#cf9a55', '#e6bd80'];
   for (let i = 0; i < 34; i++) {
-    const [x, z] = polar(rand, 12, 55);
     const s = 3 + rand() * 6;
+    // la dune (étirée ×1.4) reste entièrement hors du plateau
+    const [x, z] = polar(rand, CLEAR + s * 1.4, 55);
     const dune = new THREE.Mesh(new THREE.SphereGeometry(s, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
       new THREE.MeshStandardMaterial({ color: sandColors[i % sandColors.length], roughness: 1 }));
     dune.scale.set(1.4, 0.2 + rand() * 0.15, 1);
@@ -349,7 +375,7 @@ function desert(g, rand) {
   });
   const cactusMat = new THREE.MeshStandardMaterial({ color: '#4d7c3a', roughness: 0.8 });
   for (let i = 0; i < 32; i++) {
-    const [x, z] = polar(rand, 9, 35);
+    const [x, z] = polar(rand, CLEAR, 35);
     const c = new THREE.Group();
     const h = 1 + rand() * 1.4;
     const main = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, h, 4, 8), cactusMat);
@@ -371,7 +397,7 @@ function desert(g, rand) {
   }
   const rockMat = new THREE.MeshStandardMaterial({ color: '#9a6a3a', flatShading: true });
   for (let i = 0; i < 22; i++) {
-    const [x, z] = polar(rand, 9, 40);
+    const [x, z] = polar(rand, CLEAR, 40);
     const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.7, 0), rockMat);
     r.position.set(x, GROUND_Y + 0.1, z);
     r.scale.y = 0.6;
@@ -386,17 +412,45 @@ export function buildScenery(sc) {
   const rand = seeded(42);
   const group = new THREE.Group();
   const updaters = [];
+  const occluders = [];
   group.add(skyDome(sc.skyTop, sc.skyBottom));
   if (sc.stars) group.add(stars(rand));
   if (sc.decor !== 'ocean') group.add(ground(sc.ground));
-  if (sc.decor === 'city') city(group, rand, sc, updaters);
+  if (sc.decor === 'city') city(group, rand, sc, updaters, occluders);
   if (sc.decor === 'park') park(group, rand, updaters);
   if (sc.decor === 'ocean') ocean(group, rand, sc, updaters);
-  if (sc.decor === 'neon') neon(group, rand, updaters);
+  if (sc.decor === 'neon') neon(group, rand, updaters, occluders);
   if (sc.decor === 'desert') desert(group, rand);
   return {
     group,
     update: (t) => { for (const u of updaters) u(t); },
+    // estompe les bâtiments qui cachent le plateau : lignes de vue de la caméra vers 9 points du plateau
+    fadeOccluders(camera, target, dt) {
+      if (!occluders.length) return;
+      const cam = camera.position;
+      const rays = BOARD_POINTS.map((p) => {
+        const q = p.clone().add(new THREE.Vector3(target.x, 0, target.z));
+        return { ray: new THREE.Ray(cam.clone(), q.clone().sub(cam).normalize()), dist: cam.distanceTo(q) };
+      });
+      const hit = new THREE.Vector3();
+      const k = Math.min(1, dt * 8);
+      for (const o of occluders) {
+        const blocking = o.box.distanceToPoint(cam) < 2
+          || rays.some(({ ray, dist }) => ray.intersectBox(o.box, hit) && cam.distanceTo(hit) < dist);
+        // un bâtiment qui gêne s'efface complètement (fondu), puis réapparaît quand la vue est dégagée
+        const goal = blocking ? 0 : 1;
+        if (Math.abs(o.opacity - goal) < 0.005) continue;
+        o.opacity += (goal - o.opacity) * k;
+        if (Math.abs(o.opacity - goal) < 0.01) o.opacity = goal;
+        for (const obj of o.objects) obj.visible = o.opacity > 0.02;
+        for (const m of o.mats) {
+          if (m.transparent !== o.opacity < 1) m.needsUpdate = true;
+          m.transparent = o.opacity < 1;
+          m.depthWrite = o.opacity >= 1;
+          m.opacity = o.opacity;
+        }
+      }
+    },
     dispose: () => {
       group.traverse((o) => {
         o.geometry?.dispose();
