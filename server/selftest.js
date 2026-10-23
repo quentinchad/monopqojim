@@ -39,3 +39,22 @@ for (let g = 0; g < 200; g++) {
   game.destroy();
 }
 console.log('parties', games, stats);
+
+// Statistiques : une partie terminée doit avoir un historique cohérent
+{
+  const game = new Game('S');
+  for (let i = 0; i < 4; i++) game.addPlayer({ name: 'B' + i, token: null, isBot: true });
+  game.hostId = game.players[0].id;
+  game.start(game.hostId);
+  for (let k = 0; k < 20000 && game.phase === 'playing'; k++) {
+    if (game.fight) { const f = game.fight; f.stop(); game.endFight(f.ids[0]); continue; }
+    if (game.auction) { game.endAuction(); continue; }
+    botStep(game);
+  }
+  const st = game.publicState().stats;
+  if (game.phase === 'ended') {
+    if (!st || st.history.length < 2) throw new Error('historique manquant');
+    const sum = Object.values(st.players).reduce((a, p) => a + p.rolls, 0);
+    console.log('stats OK : tours', st.turns, '· points de courbe', st.history.length, '· lancers', sum);
+  }
+}

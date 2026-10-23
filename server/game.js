@@ -54,6 +54,7 @@ export class Game {
     this.decks = { chance: [], chest: [] };
     this.createdAt = Date.now();
     this.version = 0;
+    this.stats = null;
   }
 
   // ---------- utilitaires ----------
@@ -162,12 +163,44 @@ export class Game {
     for (const i of OWNABLE) this.props[i] = { owner: null, houses: 0, mortgaged: false };
     this.decks.chance = shuffle(CHANCE_CARDS.map((c) => c.id));
     this.decks.chest = shuffle(CHEST_CARDS.map((c) => c.id));
+    this.stats = { turns: 0, startedAt: Date.now(), endedAt: null, history: [], cells: {}, players: {} };
     this.addLog('La partie commence ! Bonne chance à tous 🌍');
     this.beginTurn(this.players[0]);
     this.changed();
   }
 
+  // ---------- statistiques ----------
+  st(p) {
+    if (!this.stats || !p) return {};
+    return (this.stats.players[p.id] ||= {
+      rentPaid: 0, rentReceived: 0, maxRentPaid: 0, bought: 0, spentOnProps: 0, auctionsWon: 0,
+      houses: 0, hotels: 0, hijacks: 0, hotelsLost: 0, jail: 0, trafficArrests: 0, trafficDeliveries: 0,
+      doubles: 0, rolls: 0, diceTotal: 0, goPasses: 0, cards: 0, taxes: 0, trades: 0, swaps: 0,
+      goulagWins: 0, goulagLosses: 0, peakWorth: 0, outTurn: null,
+    });
+  }
+
+  cellStat(i) {
+    return this.stats ? (this.stats.cells[i] ||= { landings: 0, rent: 0 }) : {};
+  }
+
+  // Patrimoine de chaque joueur à un instant donné, pour la courbe de fin de partie
+  snapshot() {
+    if (!this.stats) return;
+    const worth = {};
+    for (const p of this.players) {
+      worth[p.id] = p.status === 'alive' ? Math.round(this.netWorth(p)) : 0;
+      const s = this.st(p);
+      s.peakWorth = Math.max(s.peakWorth, worth[p.id]);
+    }
+    const h = this.stats.history;
+    h.push({ turn: this.stats.turns, worth });
+    // garde la courbe légère sur les très longues parties
+    if (h.length > 500) this.stats.history = h.filter((_, i) => i % 2 === 0 || i === h.length - 1);
+  }
+
   beginTurn(p) {
+    if (this.stats) { this.stats.turns++; this.snapshot(); }
     this.turn = { pid: p.id, phase: 'roll', dice: null, rollId: 0, doubles: 0, extraRoll: false, pending: null, rolled: false };
   }
 
@@ -226,6 +259,10 @@ export class Game {
     t.rolled = true;
     const isDouble = dice[0] === dice[1];
     const sum = dice[0] + dice[1];
+    const ps = this.st(p);
+    ps.rolls++;
+    ps.diceTotal += sum;
+    if (isDouble) ps.doubles++;
     // durée approximative de l'animation côté client (dés + déplacement), pour que les bots attendent
     const fromPos = p.pos;
     this.after(() => { this.animUntil = Date.now() + 800 + ((p.pos - fromPos + 40) % 40) * 110; });
@@ -295,11 +332,13 @@ export class Game {
   }
 
   passGo(p) {
+    this.st(p).goPasses++;
     p.money += RULES.GO_SALARY;
     this.addLog(`${p.name} passe par la case Départ et reçoit ${RULES.GO_SALARY} $`, p.id);
     if (p.trafficking) {
       p.trafficking = false;
       p.money += RULES.TRAFFIC_BONUS;
+      this.st(p).trafficDeliveries++;
       this.addLog(`💊 ${p.name} écoule sa marchandise et empoche ${RULES.TRAFFIC_BONUS} $ de plus`, p.id);
       this.addEvent('traffic', { pid: p.id, text: `${p.name} a livré la marchandise : +${RULES.TRAFFIC_BONUS} $ 💰` });
     }
@@ -307,6 +346,8 @@ export class Game {
 
   sendToJail(p) {
     const heavy = p.trafficking;
+    this.st(p).jail++;
+    if (heavy) this.st(p).trafficArrests++;
     p.trafficking = false;
     p.pos = RULES.JAIL_POSITION;
     p.jail = { in: true, turns: 0, heavy };
@@ -321,12 +362,14 @@ export class Game {
 
   land(p, opts = {}) {
     const cell = BOARD[p.pos];
+    this.cellStat(p.pos).landings++;
     switch (cell.type) {
       case 'city':
       case 'airport':
       case 'utility': this.landOwnable(p, cell, opts); break;
       case 'tax': {
         this.addLog(`${p.name} paie ${cell.amount} $ (${cell.name})`, p.id);
+        this.st(p).taxes += cell.amount;
         this.charge(p, cell.amount, null, true);
         break;
       }
@@ -361,6 +404,11 @@ export class Game {
       const owner = this.player(prop.owner);
       let rent = this.rentFor(cell.index, opts);
       this.addLog(`${p.name} paie ${rent} $ de loyer à ${owner.name} (${cell.name})`, p.id);
+      const ps = this.st(p);
+      ps.rentPaid += rent;
+      ps.maxRentPaid = Math.max(ps.maxRentPaid, rent);
+      this.st(owner).rentReceived += rent;
+      this.cellStat(cell.index).rent += rent;
       this.charge(p, rent, owner.id);
     }
     if (cell.type === 'airport') this.offerHijack(p, cell.index);
@@ -414,6 +462,8 @@ export class Game {
     p.money -= cell.price;
     this.props[cell.index].owner = p.id;
     this.addLog(`${p.name} achète ${cell.name} pour ${cell.price} $`, p.id);
+    this.st(p).bought++;
+    this.st(p).spentOnProps += cell.price;
     if (cell.type === 'city' && this.ownsCountry(p.id, cell.country)) {
       this.addLog(`🏳️ ${p.name} contrôle tout le pays ${COUNTRIES[cell.country].name} !`, p.id);
     }
@@ -474,6 +524,10 @@ export class Game {
     const w = a.bidder && this.player(a.bidder);
     if (w && w.status === 'alive' && w.money >= a.bid) {
       w.money -= a.bid;
+      const ws = this.st(w);
+      ws.auctionsWon++;
+      ws.bought++;
+      ws.spentOnProps += a.bid;
       this.props[a.cell].owner = w.id;
       this.addLog(`🔨 ${w.name} remporte ${cell.name} pour ${a.bid} $`, w.id);
     } else {
@@ -519,6 +573,8 @@ export class Game {
       const victim = this.player(prop.owner);
       p.money -= pend.cost;
       prop.houses = 0;
+      this.st(p).hijacks++;
+      this.st(victim).hotelsLost++;
       const cell = BOARD[pend.target];
       this.addLog(`✈️💥 ${p.name} détourne un avion depuis ${BOARD[pend.from].name} et détruit l’hôtel de ${victim.name} à ${cell.name} (${pend.cost} $)`, p.id);
       this.addEvent('hijack', {
@@ -542,6 +598,7 @@ export class Game {
     if (card.action.kind !== 'jailCard') ids.push(id);
     const label = deck === 'chance' ? 'Chance' : 'Caisse de communauté';
     this.addLog(`${p.name} tire une carte ${label} : « ${card.text} »`, p.id);
+    this.st(p).cards++;
     this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
     this.applyCard(p, card);
   }
@@ -612,6 +669,7 @@ export class Game {
     const other = this.player(this.props[b].owner);
     this.props[a].owner = other.id;
     this.props[b].owner = p.id;
+    this.st(p).swaps++;
     this.cancelTradesWithProps([a, b]);
     const text = `🔀 Échange forcé : ${p.name} donne ${BOARD[a].name} et reçoit ${BOARD[b].name} de ${other.name}`;
     this.addLog(text, p.id);
@@ -656,6 +714,8 @@ export class Game {
     if (p.money < price) fail('Pas assez d’argent');
     p.money -= price;
     prop.houses++;
+    if (prop.houses === 5) this.st(p).hotels++;
+    else this.st(p).houses++;
     this.addLog(`${p.name} construit ${prop.houses === 5 ? 'un hôtel' : 'une maison'} à ${cell.name}`, p.id);
   }
 
@@ -765,6 +825,7 @@ export class Game {
     this.trades = this.trades.filter((t) => t.from !== p.id && t.to !== p.id);
     if (this.auction?.bidder === p.id) { this.auction.bidder = null; this.auction.bid = 0; }
 
+    this.st(p).outTurn = this.stats?.turns ?? null;
     this.addLog(`💀 ${p.name} fait faillite${toPlayer ? ` au profit de ${toPlayer.name}` : ''}`, p.id);
     if (this.settings.goulag && !p.usedGoulag) {
       p.status = 'goulag';
@@ -791,6 +852,7 @@ export class Game {
     if (alive.length > 1) return false;
     this.phase = 'ended';
     this.winner = alive[0]?.id || null;
+    if (this.stats) { this.stats.endedAt = Date.now(); this.snapshot(); }
     for (const p of this.players) if (p.status === 'goulag') p.status = 'eliminated';
     this.fight?.stop();
     this.fight = null;
@@ -825,6 +887,8 @@ export class Game {
       if (!p) continue;
       if (id === winnerId) {
         p.status = 'alive';
+        this.st(p).goulagWins++;
+        this.st(p).outTurn = null;
         p.money = this.settings.goulagMoney;
         p.pos = 0;
         p.jail = { in: false, turns: 0, heavy: false };
@@ -832,6 +896,8 @@ export class Game {
         this.addEvent('goulagWin', { pid: p.id, text: `🔥 ${p.name} revient du goulag avec ${this.settings.goulagMoney} $ !` });
       } else {
         p.status = 'eliminated';
+        this.st(p).goulagLosses++;
+        this.st(p).outTurn = this.stats?.turns ?? null;
         this.addLog(`☠️ ${p.name} perd au goulag et est définitivement éliminé`, p.id);
       }
     }
@@ -893,6 +959,8 @@ export class Game {
     this.trades = this.trades.filter((x) => x.id !== id);
     this.cancelTradesWithProps([...t.offer.props, ...t.request.props]);
     this.addLog(`🤝 ${p.name} accepte l’échange de ${from.name}`, p.id);
+    this.st(p).trades++;
+    this.st(from).trades++;
     this.addEvent('trade', { text: `🤝 Échange conclu entre ${from.name} et ${p.name}` });
   }
 
@@ -999,6 +1067,8 @@ export class Game {
       pot: this.pot,
       winner: this.winner,
       fight: this.fight ? this.fight.meta() : null,
+      // les statistiques complètes ne sont envoyées qu'en fin de partie
+      stats: this.phase === 'ended' ? this.stats : null,
       version: this.version,
     };
   }

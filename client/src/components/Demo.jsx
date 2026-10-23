@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BOARD, COUNTRY_CELLS, OWNABLE, RULES } from '../../../shared/board.js';
 import { Fight, ARENA } from '../../../server/fight.js';
+import { Game } from '../../../server/game.js';
+import { botStep } from '../../../server/bots.js';
+import EndGameStats from './EndGameStats.jsx';
 import Board2D from './Board2D.jsx';
 import { Dice } from './CenterControls.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
@@ -58,6 +61,31 @@ const BANNERS = [
   { type: 'win', pid: 'me', text: '🏆 Vous remportez la partie !' },
 ];
 
+// Joue une partie complète entre bots avec le vrai moteur, pour montrer l'écran de statistiques
+function simulateGame() {
+  let shortest = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const game = new Game('DEMO');
+    ['Vous', 'Bot Tokyo', 'Bot Rio', 'Bot Berlin'].forEach((name) => game.addPlayer({ name, token: null, isBot: true }));
+    game.hostId = game.players[0].id;
+    game.start(game.hostId);
+    for (let k = 0; k < 30000 && game.phase === 'playing'; k++) {
+      if (game.fight) { const f = game.fight; f.stop(); game.endFight(f.ids[Math.random() < 0.5 ? 0 : 1]); continue; }
+      if (game.auction) { game.endAuction(); continue; }
+      if (!botStep(game)) break;
+    }
+    game.destroy();
+    if (game.phase === 'ended') {
+      const s = game.publicState();
+      s.stats.startedAt = s.stats.endedAt - (35 + Math.round(Math.random() * 30)) * 60000;
+      // les bots seuls peuvent jouer très longtemps : on garde une partie de durée réaliste
+      if (s.stats.turns < 700) return s;
+      if (!shortest || s.stats.turns < shortest.stats.turns) shortest = s;
+    }
+  }
+  return shortest;
+}
+
 function useLocalFight(active, withHuman) {
   const [handle, setHandle] = useState(null);
   useEffect(() => {
@@ -89,6 +117,7 @@ export default function Demo() {
   const [hijack, setHijack] = useState(null);
   const [fightMode, setFightMode] = useState(null); // 'human' | 'bots'
   const [banner, setBanner] = useState(null);
+  const [statsState, setStatsState] = useState(null);
   const bannerIdx = useRef(0);
   const [boardState, setBoardState] = useState(() => makeDemoState(null));
   const [positions] = useAnimatedPositions(boardState.players);
@@ -161,6 +190,12 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>📊 Statistiques de fin de partie</h3>
+          <p className="muted">Simule une vraie partie entre 4 bots puis affiche ses statistiques (courbes, trophées…).</p>
+          <button className="btn primary" onClick={() => setStatsState(simulateGame())}>▶ Simuler une partie</button>
+        </section>
+
+        <section className="panel">
           <h3>🎲 Dés et déplacement</h3>
           <p className="muted">Les dés roulent, puis le pion avance case par case.</p>
           <button className="btn primary" onClick={roll}>🎲 Lancer les dés</button>
@@ -176,6 +211,7 @@ export default function Demo() {
         </Board2D>
       </div>
 
+      {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}
       {hijack && (
         <HijackCinematic event={hijack} state={hijackState} positions={{}} onEnd={() => setHijack(null)} />
       )}

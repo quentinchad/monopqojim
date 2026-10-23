@@ -51,7 +51,9 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 
 **Thèmes visuels** : 5 thèmes au choix (🌃 Nuit violette, 🌳 Classique jour, 🌊 Océan, 🌆 Néon, 🏜️ Désert), sélectionnables à tout moment. Chacun change les couleurs de l’interface et du plateau, et en 3D / FPS le ciel, la lumière et le décor autour du plateau (ville illuminée, parc arboré, île tropicale avec bateaux, ville néon, désert avec pyramides). Le choix est propre à chaque joueur.
 
-**Page de démo** : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, cartes et annonces, dés).
+**Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
+
+**Page de démo** : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, cartes et annonces, dés, statistiques d’une partie simulée entre bots).
 
 Enchères (proposées au joueur qui refuse d’acheter), cagnotte du Parc gratuit (option), hypothèques, échanges libres entre joueurs (argent, villes, cartes prison), faillite, bots pour compléter la partie, reconnexion après rafraîchissement.
 

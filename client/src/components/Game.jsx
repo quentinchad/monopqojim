@@ -7,6 +7,7 @@ import FightOverlay from './FightOverlay.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
+import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { PlayersPanel, TradesPanel, MyProperties, LogChat } from './Panels.jsx';
 import { useAnimatedPositions, useElementSize } from '../hooks.js';
@@ -71,6 +72,13 @@ export default function Game({ state, me, onLeave }) {
   const [selected, setSelected] = useState(null);
   const [trade, setTrade] = useState(null); // id du joueur ciblé ou true
   const [leftOpen, setLeftOpen] = useState(true);
+  const [showStats, setShowStats] = useState(false);
+  // les statistiques s'ouvrent d'elles-mêmes à la fin de la partie
+  const wasEnded = useRef(state.phase === 'ended');
+  useEffect(() => {
+    if (state.phase === 'ended' && !wasEnded.current) setShowStats(true);
+    wasEnded.current = state.phase === 'ended';
+  }, [state.phase]);
   const boardWrap = useRef(null);
   const { w, h } = useElementSize(boardWrap);
   const [positions, animating] = useAnimatedPositions(state.players);
@@ -101,7 +109,7 @@ export default function Game({ state, me, onLeave }) {
     try { await navigator.clipboard.writeText(`${window.location.origin}/room/${state.id}`); toast('Lien copié !', 'info'); } catch { /* ignore */ }
   };
 
-  const controls = <CenterControls state={state} me={me} onLeave={onLeave} animating={animating} />;
+  const controls = <CenterControls state={state} me={me} onLeave={onLeave} animating={animating} onShowStats={() => setShowStats(true)} />;
 
   return (
     <div className={`game ${leftOpen ? '' : 'left-closed'}`}>
@@ -162,6 +170,7 @@ export default function Game({ state, me, onLeave }) {
 
       {selected != null && <CellCard state={state} me={me} index={selected} onClose={() => setSelected(null)} />}
       {trade && <TradeModal state={state} me={me} initialTarget={trade === true ? null : trade} onClose={() => setTrade(null)} />}
+      {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
       {cinematic && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {state.fight && <FightOverlay key={state.fight.ids.join()} state={state} me={me} />}
     </div>
