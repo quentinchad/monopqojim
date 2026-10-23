@@ -10,7 +10,6 @@ const T_CHASE = 1.1;
 const T_TACKLE = 4.3;
 export const T_BUSTED = 4.9;
 
-const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 function cellWorld(i) {
@@ -87,25 +86,28 @@ function makePoliceCar() {
   const blue = std('#1d4ed8');
   const glass = std('#0f172a', { metalness: 0.6, roughness: 0.2 });
   const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
-  box(1.0, 0.22, 0.5, white, 0, 0.2, 0);
-  box(1.01, 0.06, 0.51, blue, 0, 0.2, 0);
-  box(0.55, 0.18, 0.46, glass, -0.05, 0.4, 0);
-  for (const [x, z] of [[-0.32, 0.25], [0.32, 0.25], [-0.32, -0.25], [0.32, -0.25]]) {
+  // l'avant de la voiture est vers +z
+  box(0.5, 0.22, 1.0, white, 0, 0.2, 0);
+  box(0.51, 0.06, 1.01, blue, 0, 0.2, 0);
+  box(0.46, 0.18, 0.55, glass, 0, 0.4, -0.05);
+  box(0.08, 0.05, 0.02, std('#fef08a', { emissive: '#fef08a', emissiveIntensity: 1 }), -0.15, 0.22, 0.505);
+  box(0.08, 0.05, 0.02, std('#fef08a', { emissive: '#fef08a', emissiveIntensity: 1 }), 0.15, 0.22, 0.505);
+  for (const [x, z] of [[-0.25, 0.32], [0.25, 0.32], [-0.25, -0.32], [0.25, -0.32]]) {
     const w = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.06, 16), std('#111827'));
-    w.rotation.x = Math.PI / 2;
+    w.rotation.z = Math.PI / 2;
     w.position.set(x, 0.1, z);
     g.add(w);
   }
   const red = new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#ef4444', emissiveIntensity: 2 });
   const blu = new THREE.MeshStandardMaterial({ color: '#3b82f6', emissive: '#3b82f6', emissiveIntensity: 2 });
-  const lr = box(0.12, 0.06, 0.3, red, -0.07, 0.52, 0);
-  const lb = box(0.12, 0.06, 0.3, blu, 0.07, 0.52, 0);
+  box(0.14, 0.06, 0.12, red, -0.08, 0.52, -0.05);
+  box(0.14, 0.06, 0.12, blu, 0.08, 0.52, -0.05);
   const pr = new THREE.PointLight('#ff2d2d', 0, 5);
   pr.position.set(-0.1, 0.7, 0);
   const pb = new THREE.PointLight('#2d6bff', 0, 5);
   pb.position.set(0.1, 0.7, 0);
   g.add(pr, pb);
-  g.scale.setScalar(1.1);
+  g.scale.setScalar(1.3);
   return { g, lights: [[red, pr], [blu, pb]] };
 }
 
@@ -125,9 +127,13 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
   const runner = makeRunner(color);
   const cop = makeCop();
   const car = makePoliceCar();
-  car.g.position.copy(J).add(dir.clone().multiplyScalar(0.2)).add(side.clone().multiplyScalar(0.9));
-  car.g.lookAt(car.g.position.clone().add(side));
+  // la voiture arrive depuis la prison et se gare juste après le lieu du plaquage, côté opposé à la caméra
+  const carStop = P.clone().add(dir.clone().multiplyScalar(1.7)).sub(side.clone().multiplyScalar(0.6)).setY(GROUND);
+  const carFrom = J.clone().add(dir.clone().multiplyScalar(1.2)).sub(side.clone().multiplyScalar(0.6)).setY(GROUND);
+  car.g.position.copy(carFrom);
+  car.g.lookAt(carFrom.clone().sub(dir));
   group.add(runner, cop.g, car.g);
+  const T_CAR = [1.4, T_TACKLE - 0.2];
 
   const copStart = S.clone().sub(dir.clone().multiplyScalar(2.4));
   const particles = [];
@@ -157,6 +163,10 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
     }
   }
 
+  const zig = (k) => side.clone().multiplyScalar(Math.sin(k * Math.PI * 5) * 0.35 * (1 - k * 0.6));
+  const LEAP = 0.82; // moment du plongeon (fraction de la course)
+  const pathPos = (k) => S.clone().lerp(P, k);
+
   function update(t, dt) {
     const sm = (a) => 1 - (1 - a) ** (dt * 60);
     // --- fugitif ---
@@ -167,7 +177,7 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
       runner.rotation.z = Math.sin(t * 30) * 0.05;
     } else if (t < T_TACKLE) {
       const k = (t - T_CHASE) / (T_TACKLE - T_CHASE);
-      const pos = S.clone().lerp(P, k).add(side.clone().multiplyScalar(Math.sin(k * Math.PI * 5) * 0.35));
+      const pos = S.clone().lerp(P, k).add(zig(k));
       pos.y = GROUND + Math.abs(Math.sin(t * 14)) * 0.14;
       runner.position.copy(pos);
       runner.lookAt(pos.clone().add(dir).setY(pos.y));
@@ -190,17 +200,18 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
       swing(0.9);
     } else if (t < T_TACKLE) {
       const k = (t - T_CHASE) / (T_TACKLE - T_CHASE);
-      const leapStart = 0.8;
-      const target = P.clone().sub(dir.clone().multiplyScalar(0.25));
-      if (k < leapStart) {
-        cop.g.position.copy(copStart.clone().lerp(target.clone().sub(dir.clone().multiplyScalar(0.9)), ease(k / leapStart)));
+      if (k < LEAP) {
+        // l'écart avec le pion se réduit de 2,4 à 0,9 sans jamais s'annuler : le policier reste derrière
+        const gap = 2.4 - 1.5 * (1 - (1 - k / LEAP) ** 2);
+        cop.g.position.copy(pathPos(k).sub(dir.clone().multiplyScalar(gap)).add(zig(Math.max(0, k - 0.1)).multiplyScalar(0.6)));
         cop.g.position.y = GROUND + Math.abs(Math.sin(t * 18)) * 0.05;
         cop.g.lookAt(cop.g.position.clone().add(dir).setY(cop.g.position.y));
         swing(0.9);
       } else {
-        // plongeon
-        const j = (k - leapStart) / (1 - leapStart);
-        const a = target.clone().sub(dir.clone().multiplyScalar(0.9));
+        // plongeon : part de derrière le pion et atterrit juste derrière lui
+        const j = (k - LEAP) / (1 - LEAP);
+        const a = pathPos(LEAP).sub(dir.clone().multiplyScalar(0.9));
+        const target = P.clone().sub(dir.clone().multiplyScalar(0.25));
         cop.g.position.copy(a.lerp(target, j));
         cop.g.position.y = GROUND + Math.sin(j * Math.PI) * 0.45 + j * 0.15;
         cop.g.lookAt(cop.g.position.clone().add(dir).setY(cop.g.position.y));
@@ -219,6 +230,13 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
       cop.legs[1].rotation.x = -Math.sin(t * 5) * 0.2;
       if (!impacted) { impacted = true; shake = 0.12; puff(P); }
     }
+
+    // voiture : arrive de la prison en freinant et se gare près du plaquage
+    const ck = clamp01((t - T_CAR[0]) / (T_CAR[1] - T_CAR[0]));
+    car.g.position.copy(carFrom.clone().lerp(carStop, 1 - (1 - ck) ** 3));
+    car.g.position.y = GROUND + (ck > 0 && ck < 1 ? Math.abs(Math.sin(t * 25)) * 0.01 : 0);
+    car.g.lookAt(car.g.position.clone().sub(dir));
+    if (ck >= 1) car.g.rotateY(Math.min(0.5, (t - T_CAR[1]) * 1.5)); // léger braquage en se garant
 
     // gyrophares
     const blink = Math.floor(t * 6) % 2;
@@ -261,8 +279,8 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
       camPos.lerp(mid.clone().add(side.clone().multiplyScalar(3.6)).add(new THREE.Vector3(0, 1.9, 0)), sm(0.07));
       camLook.lerp(mid, sm(0.15));
     } else {
-      camPos.lerp(P.clone().add(side.clone().multiplyScalar(1.7)).add(dir.clone().multiplyScalar(0.9)).add(new THREE.Vector3(0, 1.0, 0)), sm(0.025));
-      camLook.lerp(P.clone().add(dir.clone().multiplyScalar(0.3)).setY(GROUND + 0.25), sm(0.08));
+      camPos.lerp(P.clone().add(side.clone().multiplyScalar(2.3)).add(dir.clone().multiplyScalar(0.4)).add(new THREE.Vector3(0, 1.25, 0)), sm(0.025));
+      camLook.lerp(P.clone().add(dir.clone().multiplyScalar(0.7)).setY(GROUND + 0.3), sm(0.08));
     }
     shake *= 0.9 ** (dt * 60);
     camera.position.copy(camPos).add(new THREE.Vector3((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, 0));
