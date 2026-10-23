@@ -22,7 +22,7 @@ Test de robustesse du moteur (200 parties bots contre bots) : `npm test`.
 
 Le jeu est en ligne sur **https://www.quentin-chirat.com/monopqojim**.
 
-- **Render** fait tourner le serveur Node (`render.yaml`). Chaque push sur `main` déclenche automatiquement un nouveau build et un redéploiement. Le plan gratuit se met en veille après 15 min sans visite : le premier chargement suivant prend jusqu’à ~1 min, et les parties en cours sont perdues à la mise en veille.
+- **Render** fait tourner le serveur Node (`render.yaml`). À chaque push sur `main`, l’action GitHub `.github/workflows/deploy.yml` vérifie que le jeu compile puis appelle le *Deploy Hook* de Render (secret GitHub `RENDER_DEPLOY_HOOK_URL`), ce qui redéploie le jeu. Le plan gratuit se met en veille après 15 min sans visite : le premier chargement suivant prend jusqu’à ~1 min, et les parties en cours sont perdues à la mise en veille.
 - **OVH** (hébergement du site) sert seulement la page `deploy/ovh/` dans le dossier `www/monopqojim/` : elle affiche le jeu en plein écran (iframe), montre un écran d’attente pendant le réveil du serveur et garde dans la barre d’adresse un lien partageable vers la partie (`…/monopqojim?room=CODE`). Elle n’a besoin d’être déposée qu’une fois ; à re-déposer seulement si elle change.
 - La variable `VITE_PUBLIC_URL` (définie dans `render.yaml`) fait pointer les liens d’invitation vers le site plutôt que vers Render. La démo est sur `…/monopqojim/demo`.
 
@@ -30,6 +30,7 @@ Mise en place (une seule fois) :
 1. Sur render.com, se connecter avec GitHub, puis **New > Blueprint** et choisir le dépôt `quentinchad/monopqojim` : Render lit `render.yaml` et crée le service `monopqojim`.
 2. Vérifier l’adresse du service (normalement `https://monopqojim.onrender.com`) ; si elle est différente, l’indiquer dans la variable `GAME` de `deploy/ovh/index.html`.
 3. Déposer `deploy/ovh/index.html` et `deploy/ovh/.htaccess` par FTP dans `www/monopqojim/` sur l’hébergement OVH.
+4. Dans Render, service > **Settings > Deploy Hook** : copier l’URL. Dans GitHub, dépôt > **Settings > Secrets and variables > Actions > New repository secret** : nom `RENDER_DEPLOY_HOOK_URL`, valeur = cette URL.
 
 Autres options : `docker build -t monopqojim .` puis `docker run -p 3000:3000 monopqojim`, ou n’importe quel hébergeur Node avec WebSockets (build : `npm install && npm run build`, démarrage : `npm start`).
 
