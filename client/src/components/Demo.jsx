@@ -7,6 +7,7 @@ import EndGameStats from './EndGameStats.jsx';
 import Board2D from './Board2D.jsx';
 import { Dice } from './CenterControls.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
+import BustedCinematic from './BustedCinematic.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import { EventBanner } from './Game.jsx';
 import { useAnimatedPositions } from '../hooks.js';
@@ -115,6 +116,8 @@ export default function Demo() {
   const [airport, setAirport] = useState(15);
   const [target, setTarget] = useState(19);
   const [hijack, setHijack] = useState(null);
+  const [arrestFrom, setArrestFrom] = useState(30);
+  const [arrest, setArrest] = useState(null);
   const [fightMode, setFightMode] = useState(null); // 'human' | 'bots'
   const [banner, setBanner] = useState(null);
   const [statsState, setStatsState] = useState(null);
@@ -177,6 +180,23 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🚔 Arrestation (« BUSTED »)</h3>
+          <p className="muted">Montrée à tous quand un joueur part en prison : course-poursuite, plaquage, BUSTED.</p>
+          <label className="demo-field">Le pion part de
+            <select value={arrestFrom} onChange={(e) => setArrestFrom(+e.target.value)}>
+              <option value={30}>Case « Allez en prison »</option>
+              <option value={7}>Chance (carte « Allez en prison »)</option>
+              <option value={22}>Chance (côté Italie)</option>
+              <option value={10}>Case Prison (trafiquant contrôlé)</option>
+            </select>
+          </label>
+          <button className="btn primary" onClick={() => setArrest({
+            id: Date.now(), type: 'busted', pid: 'me', from: arrestFrom, heavy: arrestFrom === 10,
+            text: arrestFrom === 10 ? '🚔 Vous vous faites contrôler à la prison avec la marchandise : peine doublée (6 tours) !' : '🚔 Vous tombez sur la case « Allez en prison » : direction la prison !',
+          })}>▶ Lancer l’arrestation</button>
+        </section>
+
+        <section className="panel">
           <h3>⚔️ Combat du goulag</h3>
           <p className="muted">ZQSD / WASD / flèches pour bouger, souris pour viser, clic pour tirer, Espace pour esquiver.</p>
           <button className="btn primary" onClick={() => setFightMode('human')}>▶ Jouer contre un bot</button>
@@ -212,6 +232,7 @@ export default function Demo() {
       </div>
 
       {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}
+      {arrest && <BustedCinematic event={arrest} state={hijackState} positions={{}} onEnd={() => setArrest(null)} />}
       {hijack && (
         <HijackCinematic event={hijack} state={hijackState} positions={{}} onEnd={() => setHijack(null)} />
       )}

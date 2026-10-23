@@ -6,6 +6,7 @@ import { cellRect, cellCenter, tokenOffset, TOTAL } from '../layout.js';
 import { flagDataUrl } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { createHijackCinematic } from '../cinematic.js';
+import { createBustedCinematic } from '../busted.js';
 import { THEMES, useThemeId } from '../themes.js';
 import { buildScenery } from '../scenery.js';
 
@@ -222,7 +223,7 @@ function cellWorld(i, y = 0) {
   return new THREE.Vector3(c.x - HALF, y, c.y - HALF);
 }
 
-export default function Board3D({ state, positions, onCellClick, highlights, mode = 'orbit', followId, cinematic, onCinematicEnd }) {
+export default function Board3D({ state, positions, onCellClick, highlights, mode = 'orbit', followId, cinematic, onCinematicEnd, onCinematicCue }) {
   const mount = useRef(null);
   const themeId = useThemeId();
   const world = useRef(null);
@@ -230,6 +231,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
   clickRef.current = onCellClick;
   const cineEndRef = useRef(onCinematicEnd);
   cineEndRef.current = onCinematicEnd;
+  const cineCueRef = useRef(onCinematicCue);
+  cineCueRef.current = onCinematicCue;
 
   // Initialisation de la scène
   useEffect(() => {
@@ -510,15 +513,22 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     }
   }, [positions, state]);
 
-  // Cinématique du détournement d'avion
+  // Cinématiques : détournement d'avion ou arrestation
   useEffect(() => {
     const w = world.current;
     if (!w || !cinematic) return;
     w.cine?.dispose();
-    w.cineHotel = cinematic.cell;
-    w.refresh?.();
     w.controls.enabled = false;
     w.cineT = 0;
+    if (cinematic.kind === 'busted') {
+      w.cine = createBustedCinematic({
+        scene: w.scene, camera: w.camera, from: cinematic.from, color: cinematic.color,
+        onBusted: () => cineCueRef.current?.('busted'),
+      });
+      return;
+    }
+    w.cineHotel = cinematic.cell;
+    w.refresh?.();
     w.cine = createHijackCinematic({
       scene: w.scene, camera: w.camera, cells: w.cells,
       from: cinematic.from, cell: cinematic.cell, color: cinematic.color,
@@ -550,7 +560,9 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
   useEffect(() => {
     const w = world.current;
     if (!w) return;
-    for (const [id, tok] of w.tokens) tok.obj.visible = !(mode === 'fps' && id === followId);
+    // pendant l'arrestation, le pion arrêté est joué par la cinématique
+    const hidden = cinematic?.kind === 'busted' ? cinematic.pid : null;
+    for (const [id, tok] of w.tokens) tok.obj.visible = !(mode === 'fps' && id === followId) && id !== hidden;
   });
 
   return <div ref={mount} className="board3d" />;

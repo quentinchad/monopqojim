@@ -453,3 +453,16 @@ small { color: var(--muted); }
   .two-col, .facts { grid-template-columns: 1fr; }
   .rc-head, .rc-row { grid-template-columns: 1fr 80px 1fr; }
 }
+
+/* arrestation « BUSTED » */
+.cinematic-caption.police { border-color: #3b82f6; }
+.cinematic-caption.police .cc-title { color: #93c5fd; }
+.cinematic-overlay .board3d canvas { transition: filter .7s ease-out; }
+.cinematic-overlay.is-busted .board3d canvas { filter: grayscale(1) contrast(1.15) brightness(.8); }
+.busted-screen { position: absolute; left: 0; right: 0; bottom: 12vh; z-index: 3; text-align: center; padding: 26px 0 30px;
+  background: linear-gradient(transparent, rgba(0,0,0,.7) 25%, rgba(0,0,0,.7) 75%, transparent); pointer-events: none; }
+.busted-text { font-family: Anton, Impact, 'Arial Black', sans-serif; font-size: clamp(72px, 13vw, 170px); line-height: 1; letter-spacing: 6px;
+  color: #dbeafe; -webkit-text-stroke: 3px #0b1220; text-shadow: 5px 5px 0 #0b1220, 0 0 40px rgba(59,130,246,.45);
+  animation: bustedIn .45s cubic-bezier(.2,1.6,.4,1) both; }
+.busted-sub { margin-top: 8px; color: #fff; font-size: 18px; font-weight: 800; animation: fadeIn .6s .3s both; }
+@keyframes bustedIn { from { transform: scale(2.2); opacity: 0; } }

@@ -5,10 +5,12 @@ import CellCard from './CellCard.jsx';
 import TradeModal from './TradeModal.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
+import BustedCinematic from './BustedCinematic.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
 import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
+import { BUSTED_DURATION } from '../busted.js';
 import { PlayersPanel, TradesPanel, MyProperties, LogChat } from './Panels.jsx';
 import { useAnimatedPositions, useElementSize } from '../hooks.js';
 import { playerById } from '../gameInfo.js';
@@ -26,7 +28,7 @@ function useEventQueue(events, paused) {
     if (!fresh.length) return;
     seen.current = fresh[fresh.length - 1].id;
     const recv = Date.now();
-    setQueue((q) => [...q, ...fresh.map((e) => ({ ...e, recv }))].slice(-4));
+    setQueue((q) => [...q, ...fresh.map((e) => ({ ...e, recv }))].slice(-6));
   }, [events]);
   const [activeId, setActiveId] = useState(null);
   const head = queue[0];
@@ -36,16 +38,23 @@ function useEventQueue(events, paused) {
   };
   // un nouvel évènement attend que les pions aient fini de bouger avant de s'afficher ;
   // une fois affiché, il reste jusqu'au bout de sa durée même si un pion se remet à bouger
+  // moment où l'évènement de tête a commencé à attendre (les pions bougeaient)
+  const headSince = useRef({ id: null, t: 0 });
+  if (head && headSince.current.id !== head.id) headSince.current = { id: head.id, t: Date.now() };
   useEffect(() => {
     if (!head || activeId === head.id || paused) return;
-    // resté trop longtemps en attente : il n'a plus d'intérêt
-    if (Date.now() - head.recv > 7000) { setQueue((q) => q.slice(1)); return; }
+    // une annonce bloquée trop longtemps par les déplacements n'a plus d'intérêt (sauf les cinématiques)
+    const cinematicEvent = head.type === 'busted' || head.type === 'hijack';
+    if (!cinematicEvent && Date.now() - headSince.current.t > 7000) { setQueue((q) => q.slice(1)); return; }
     setActiveId(head.id);
   }, [head?.id, paused, activeId]);
   useEffect(() => {
     if (activeId == null) return;
     const ev = queue.find((e) => e.id === activeId);
-    const ms = ev?.type === 'hijack' ? (HIJACK_DURATION + 4) * 1000 : ev?.type === 'card' ? 4200 : 3400;
+    // durées d'affichage : assez longues pour que chacun ait le temps de lire
+    const ms = ev?.type === 'hijack' ? (HIJACK_DURATION + 4) * 1000
+      : ev?.type === 'busted' ? (BUSTED_DURATION + 4) * 1000
+        : ev?.type === 'card' ? 6500 : 5000;
     const to = setTimeout(() => remove(activeId), ms);
     return () => clearTimeout(to);
   }, [activeId]);
@@ -103,7 +112,7 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // la cinématique remplace la bannière pour les détournements
-  const cinematic = event?.type === 'hijack' && event.from != null ? event : null;
+  const cinematic = (event?.type === 'hijack' && event.from != null) || event?.type === 'busted' ? event : null;
   const bannerEvent = cinematic ? null : event;
 
   const copyLink = async () => {
@@ -172,7 +181,8 @@ export default function Game({ state, me, onLeave }) {
       {selected != null && <CellCard state={state} me={me} index={selected} onClose={() => setSelected(null)} />}
       {trade && <TradeModal state={state} me={me} initialTarget={trade === true ? null : trade} onClose={() => setTrade(null)} />}
       {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
-      {cinematic && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
+      {cinematic?.type === 'hijack' && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
+      {cinematic?.type === 'busted' && <BustedCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {state.fight && <FightOverlay key={state.fight.ids.join()} state={state} me={me} />}
     </div>
   );

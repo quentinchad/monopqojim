@@ -296,7 +296,7 @@ export class Game {
       t.doubles++;
       if (t.doubles >= 3) {
         this.addLog(`${p.name} fait 3 doubles d’affilée : direction la prison !`, p.id);
-        this.sendToJail(p);
+        this.sendToJail(p, 'doubles');
         this.updatePhase();
         return;
       }
@@ -344,20 +344,36 @@ export class Game {
     }
   }
 
-  sendToJail(p) {
+  sendToJail(p, reason = 'gotojail') {
     const heavy = p.trafficking;
+    const from = p.pos;
     this.st(p).jail++;
     if (heavy) this.st(p).trafficArrests++;
     p.trafficking = false;
     p.pos = RULES.JAIL_POSITION;
     p.jail = { in: true, turns: 0, heavy };
     if (this.turn && this.turn.pid === p.id) this.turn.extraRoll = false;
+    // case d'où part le pion : le client l'y fait aller avant de l'envoyer en prison
+    p.jailFrom = from;
+    const why = {
+      gotojail: 'tombe sur la case « Allez en prison »',
+      doubles: 'fait 3 doubles d’affilée',
+      card: 'tire la carte « Allez en prison »',
+      traffic: 'se fait contrôler à la prison avec la marchandise',
+    }[reason] || 'est arrêté';
     if (heavy) {
       this.addLog(`🚔 ${p.name} est arrêté avec de la drogue : peine doublée (${RULES.TRAFFIC_JAIL_TURNS} tours, seul un double peut le libérer) !`, p.id);
-      this.addEvent('jail', { pid: p.id, text: `🚔 ${p.name} se fait arrêter en plein trafic ! Peine doublée.` });
     } else {
-      this.addLog(`${p.name} va en prison`, p.id);
+      this.addLog(`🚔 ${p.name} ${why} et part en prison`, p.id);
     }
+    // cinématique d'arrestation chez tous les joueurs
+    this.addEvent('busted', {
+      pid: p.id, from, reason, heavy,
+      text: heavy
+        ? `🚔 ${p.name} ${why} : arrêté en plein trafic, peine doublée (${RULES.TRAFFIC_JAIL_TURNS} tours) !`
+        : `🚔 ${p.name} ${why} : direction la prison !`,
+    });
+    this.animUntil = Date.now() + 9500;
   }
 
   land(p, opts = {}) {
@@ -375,11 +391,11 @@ export class Game {
       }
       case 'chance': this.drawCard(p, 'chance'); break;
       case 'chest': this.drawCard(p, 'chest'); break;
-      case 'gotojail': this.sendToJail(p); break;
+      case 'gotojail': this.sendToJail(p, 'gotojail'); break;
       case 'jail':
         if (p.trafficking && this.settings.trafficCaughtOnVisit) {
           this.addLog(`🚔 Contrôle de police à la prison : ${p.name} est pris avec la marchandise !`, p.id);
-          this.sendToJail(p);
+          this.sendToJail(p, 'traffic');
         }
         break;
       case 'parking':
@@ -599,7 +615,8 @@ export class Game {
     const label = deck === 'chance' ? 'Chance' : 'Caisse de communauté';
     this.addLog(`${p.name} tire une carte ${label} : « ${card.text} »`, p.id);
     this.st(p).cards++;
-    this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
+    // la carte « Allez en prison » est présentée par la cinématique d'arrestation
+    if (card.action.kind !== 'jail') this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
     this.applyCard(p, card);
   }
 
@@ -619,7 +636,7 @@ export class Game {
         else this.charge(p, -a.amount, null, true);
         break;
       case 'jailCard': p.jailCards.push(card.id); break;
-      case 'jail': this.sendToJail(p); break;
+      case 'jail': this.sendToJail(p, 'card'); break;
       case 'repairs': {
         let total = 0;
         for (const [i, prop] of Object.entries(this.props)) {
