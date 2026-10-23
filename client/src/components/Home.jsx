@@ -45,7 +45,6 @@ export default function Home({ initialRoom, onEnter }) {
         )}
       </div>
       <ThemePicker />
-      <a className="demo-link" href="/demo">🎬 Voir les animations (avion, goulag, cartes…)</a>
       <div className="home-rules">
         <div><b>✈️ Aéroports</b> Détournez un avion pour détruire l’hôtel le plus proche.</div>
         <div><b>💊 Trafic</b> Bonus au passage par Départ… ou peine de prison doublée.</div>

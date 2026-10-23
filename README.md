@@ -53,7 +53,7 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 
 **Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
 
-**Page de démo** : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, cartes et annonces, dés, statistiques d’une partie simulée entre bots).
+**Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, cartes et annonces, dés, statistiques d’une partie simulée entre bots).
 
 Enchères (proposées au joueur qui refuse d’acheter), cagnotte du Parc gratuit (option), hypothèques, échanges libres entre joueurs (argent, villes, cartes prison), faillite, bots pour compléter la partie, reconnexion après rafraîchissement.
 

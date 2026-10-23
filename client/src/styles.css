@@ -382,8 +382,6 @@ small { color: var(--muted); }
 .demo-grid .panel p { margin: 0; font-size: 13px; }
 .demo-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 .demo-board { display: flex; justify-content: center; margin: 20px auto; }
-.demo-link { color: var(--accent-2); font-weight: 800; text-decoration: none; }
-.demo-link:hover { text-decoration: underline; }
 .fight-close { position: absolute; top: 14px; right: 14px; }
 
 /* sélecteur de thème */
