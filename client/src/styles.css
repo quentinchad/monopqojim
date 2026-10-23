@@ -236,7 +236,7 @@ small { color: var(--muted); }
 .status-msg b { color: var(--text); }
 .status-msg .sub { font-size: 13px; margin-top: 4px; }
 .jail-box { background: color-mix(in srgb, var(--deep) 90%, transparent); border: 1px solid var(--line); padding: 10px 14px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
-.debt { background: rgba(127,29,29,.5); border: 1px solid var(--danger); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.debt { background: color-mix(in srgb, var(--danger) 20%, var(--panel)); color: var(--text); border: 1px solid var(--danger); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .hijack { background: color-mix(in srgb, var(--deep) 92%, transparent); border: 1px solid #f97316; border-radius: 14px; padding: 14px; }
 .hijack-title { font-weight: 900; font-size: 17px; color: #fdba74; }
 .mini-card { width: 150px; background: #f8f6ff; color: #1e1b3a; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
@@ -271,9 +271,9 @@ small { color: var(--muted); }
   background: var(--panel-2); border: 2px solid var(--accent); padding: 12px 20px; border-radius: 14px; font-weight: 900; font-size: 16px;
   box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: bannerIn .4s ease-out; max-width: 90%; text-align: center;
 }
-.ev-hijack { border-color: #f97316; background: linear-gradient(135deg, #4a1d0d, #2a1440); }
-.ev-traffic, .ev-jail { border-color: #22c55e; background: linear-gradient(135deg, #0f3d26, #2a1440); }
-.ev-goulag, .ev-bankrupt { border-color: #ef4444; background: linear-gradient(135deg, #45101a, #1a1430); }
+.ev-hijack { border-color: #f97316; background: linear-gradient(135deg, #4a1d0d, #2a1440); color: #fff; }
+.ev-traffic, .ev-jail { border-color: #22c55e; background: linear-gradient(135deg, #0f3d26, #2a1440); color: #fff; }
+.ev-goulag, .ev-bankrupt { border-color: #ef4444; background: linear-gradient(135deg, #45101a, #1a1430); color: #fff; }
 .ev-fight, .ev-goulagWin { border-color: #fde047; }
 .ev-swap { border-color: #06b6d4; }
 .ev-win { border-color: #fde047; font-size: 22px; }
@@ -327,17 +327,17 @@ small { color: var(--muted); }
 .prop-chip .flag { width: 18px; height: 12px; }
 
 /* combat du goulag */
-.fight-overlay { position: fixed; inset: 0; background: rgba(5,3,12,.92); z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
+.fight-overlay { position: fixed; inset: 0; background: rgba(5,3,12,.92); color: #f4f1ff; z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
 .fight-head { display: flex; gap: 24px; align-items: center; font-size: 22px; font-weight: 900; }
 .fight-head .vs { color: #fde047; letter-spacing: 1px; }
 .fight-canvas { width: min(96vw, calc((100vh - 140px) * 16 / 9)); aspect-ratio: 16 / 9; border-radius: 14px; border: 3px solid #4b3b2a; box-shadow: 0 0 60px rgba(239,68,68,.25); cursor: crosshair; }
-.fight-help { color: var(--muted); font-size: 14px; text-align: center; }
+.fight-help { color: #cbd5e1; font-size: 14px; text-align: center; }
 
 /* divers */
 .toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 100; }
-.toast { background: #2a1220; border: 1px solid var(--danger); padding: 10px 16px; border-radius: 10px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-.toast.info { background: var(--panel-2); border-color: var(--accent); }
-.conn-banner { position: fixed; top: 0; left: 0; right: 0; background: var(--danger); text-align: center; padding: 6px; font-weight: 800; z-index: 200; }
+.toast { background: #2a1220; color: #fff; border: 1px solid var(--danger); padding: 10px 16px; border-radius: 10px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.toast.info { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+.conn-banner { position: fixed; top: 0; left: 0; right: 0; background: var(--danger); color: #fff; text-align: center; padding: 6px; font-weight: 800; z-index: 200; }
 
 @media (max-width: 1100px) {
   .game { grid-template-columns: 0 1fr 280px; }
@@ -359,7 +359,7 @@ small { color: var(--muted); }
 
 /* déconnexions */
 .disconnect-banner { position: absolute; top: 8px; right: 10px; z-index: 30; display: flex; flex-direction: column; gap: 6px; }
-.dc-row { display: flex; align-items: center; gap: 8px; background: rgba(69,16,26,.92); border: 1px solid var(--danger); border-radius: 12px; padding: 7px 10px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.dc-row { display: flex; align-items: center; gap: 8px; background: rgba(69,16,26,.92); color: #fff; border: 1px solid var(--danger); border-radius: 12px; padding: 7px 10px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 .dc-time { font-variant-numeric: tabular-nums; color: #fca5a5; }
 
 /* cinématique du détournement */
@@ -368,9 +368,9 @@ small { color: var(--muted); }
 .cinematic-bars { position: absolute; left: 0; right: 0; height: 9vh; background: #000; z-index: 2; pointer-events: none; }
 .cinematic-bars.top { top: 0; }
 .cinematic-bars.bottom { bottom: 0; }
-.cinematic-caption { position: absolute; left: 50%; bottom: 11vh; transform: translateX(-50%); z-index: 3; text-align: center; background: rgba(10,8,20,.7); border: 1px solid #f97316; border-radius: 14px; padding: 10px 18px; font-size: 15px; max-width: 90%; }
+.cinematic-caption { position: absolute; left: 50%; bottom: 11vh; transform: translateX(-50%); z-index: 3; text-align: center; background: rgba(10,8,20,.7); color: #fff; border: 1px solid #f97316; border-radius: 14px; padding: 10px 18px; font-size: 15px; max-width: 90%; }
 .cc-title { font-weight: 900; letter-spacing: 2px; color: #fdba74; font-size: 13px; margin-bottom: 2px; }
-.cinematic-skip { position: absolute; top: calc(9vh + 10px); right: 14px; z-index: 3; }
+.cinematic-skip { color: #fff; position: absolute; top: calc(9vh + 10px); right: 14px; z-index: 3; }
 @keyframes fadeIn { from { opacity: 0; } }
 
 /* page de démo */
