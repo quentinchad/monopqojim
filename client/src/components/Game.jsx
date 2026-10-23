@@ -9,6 +9,7 @@ import BustedCinematic from './BustedCinematic.jsx';
 import TradeOfferModal from './TradeOfferModal.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
+import SoundToggle from './SoundToggle.jsx';
 import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { BUSTED_DURATION } from '../busted.js';
@@ -17,6 +18,7 @@ import { useAnimatedPositions, useElementSize } from '../hooks.js';
 import { playerById } from '../gameInfo.js';
 import { toast, act } from '../net.js';
 import { inviteLink } from '../embed.js';
+import { useGameSounds } from '../useGameSounds.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
@@ -98,6 +100,7 @@ export default function Game({ state, me, onLeave }) {
   const { w, h } = useElementSize(boardWrap);
   const [positions, animating] = useAnimatedPositions(state.players);
   const [event, nextEvent] = useEventQueue(state.events, animating);
+  useGameSounds(state, me, event);
   const size = Math.max(320, Math.min(w, h) - 16);
 
   useEffect(() => { localStorage.setItem('mq_view', view); }, [view]);
@@ -139,6 +142,7 @@ export default function Game({ state, me, onLeave }) {
           <button className={view === 'fps' ? 'active' : ''} onClick={() => setView('fps')} title="Vue à la première personne depuis votre pion">Vue FPS</button>
         </div>
         <ThemePicker />
+        <SoundToggle />
         <LogChat state={state} me={me} />
       </aside>
 

@@ -11,7 +11,9 @@ import BustedCinematic from './BustedCinematic.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import { EventBanner } from './Game.jsx';
 import { useAnimatedPositions } from '../hooks.js';
+import { eventSound } from '../sound.js';
 import ThemePicker from './ThemePicker.jsx';
+import SoundToggle from './SoundToggle.jsx';
 import SlotMachine from './SlotMachine.jsx';
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
@@ -143,6 +145,7 @@ export default function Demo() {
     const b = BANNERS[bannerIdx.current % BANNERS.length];
     bannerIdx.current++;
     setBanner({ ...b, id: Date.now() });
+    eventSound(b.type);
   }
 
   function roll() {
@@ -175,6 +178,7 @@ export default function Demo() {
         <a className="logo small" href="/">MONOP<span>QOJIM</span></a>
         <h2>🎬 Animations</h2>
         <ThemePicker />
+        <SoundToggle />
       </div>
 
       <div className="demo-grid">

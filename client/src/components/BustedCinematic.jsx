@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { playerById } from '../gameInfo.js';
 import { BUSTED_DURATION } from '../busted.js';
+import { bustedSound } from '../sound.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 
@@ -16,7 +17,8 @@ export default function BustedCinematic({ event, state, positions, onEnd }) {
   // filet de sécurité si le rendu 3D ne se termine pas (onglet en arrière-plan…)
   useEffect(() => {
     const to = setTimeout(onEnd, (BUSTED_DURATION + 3) * 1000);
-    return () => clearTimeout(to);
+    const snd = bustedSound();
+    return () => { clearTimeout(to); snd.stop(); };
   }, [event.id]);
 
   return (

@@ -3,28 +3,10 @@ import { BOARD, COUNTRIES, COUNTRY_CELLS } from '../../../shared/board.js';
 import { act, toast } from '../net.js';
 import { money, playerById } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
+import { sfx } from '../sound.js';
 
 // Rouvre la fenêtre d'une proposition reçue (bouton « Voir » du panneau des échanges)
 export const openTradeOffer = (id) => window.dispatchEvent(new CustomEvent('mq-open-trade', { detail: id }));
-
-// petit carillon à l'arrivée d'une proposition
-function chime() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [660, 880].forEach((f, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.14);
-      g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + i * 0.14 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.14 + 0.35);
-      o.connect(g).connect(ctx.destination);
-      o.start(ctx.currentTime + i * 0.14);
-      o.stop(ctx.currentTime + i * 0.14 + 0.4);
-    });
-    setTimeout(() => ctx.close(), 1000);
-  } catch { /* son indisponible */ }
-}
 
 function PropTile({ state, index, receiver }) {
   const cell = BOARD[index];
@@ -70,12 +52,12 @@ export default function TradeOfferModal({ state, me, paused, onCounter }) {
   useEffect(() => {
     const fresh = state.trades.filter((t) => t.to === me && !known.current.has(t.id));
     for (const t of state.trades) known.current.add(t.id);
-    if (fresh.length) chime();
+    if (fresh.length) sfx.chime();
     const gone = outgoing.current.filter((t) => !state.trades.some((x) => x.id === t.id));
     for (const t of gone) {
       const to = playerById(state, t.to);
       const recent = state.log.slice(-12).reverse().find((l) => l.pid === t.to);
-      if (recent?.text.includes('refuse')) toast(`${to?.name} a refusé votre proposition d’échange`, 'info');
+      if (recent?.text.includes('refuse')) { toast(`${to?.name} a refusé votre proposition d’échange`, 'info'); sfx.refuse(); }
     }
     outgoing.current = state.trades.filter((t) => t.from === me);
   }, [state.trades]);

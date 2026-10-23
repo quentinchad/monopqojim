@@ -563,3 +563,8 @@ small { color: var(--muted); }
   .offer-grid .trade-arrow { transform: rotate(90deg); justify-self: center; }
 }
 .trade-targets[hidden] { display: none; }
+
+/* ---------- réglage du son ---------- */
+.sound-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.sound-toggle input[type=range] { width: 74px; padding: 0; accent-color: var(--accent); background: transparent; border: none; }
+.sound-toggle .muted-btn { opacity: .7; }

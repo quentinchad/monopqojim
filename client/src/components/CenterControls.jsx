@@ -4,6 +4,7 @@ import { act } from '../net.js';
 import { money, playerById } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
 import SlotMachine from './SlotMachine.jsx';
+import { sfx } from '../sound.js';
 
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 
@@ -26,6 +27,7 @@ export function Dice({ turn }) {
     lastRoll.current = turn.rollId;
     lastPid.current = turn.pid;
     setRolling(true);
+    sfx.dice();
     const iv = setInterval(() => setShown([1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]), 70);
     const to = setTimeout(() => { clearInterval(iv); setRolling(false); setShown(turn.dice); }, 650);
     return () => { clearInterval(iv); clearTimeout(to); };

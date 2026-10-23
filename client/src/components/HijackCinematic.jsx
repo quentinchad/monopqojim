@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useMemo } from 'react';
 import { BOARD } from '../../../shared/board.js';
 import { playerById } from '../gameInfo.js';
 import { HIJACK_DURATION } from '../cinematic.js';
+import { hijackSound } from '../sound.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 
@@ -17,7 +18,8 @@ export default function HijackCinematic({ event, state, positions, onEnd }) {
   // filet de sécurité si le rendu 3D ne se termine pas (onglet en arrière-plan…)
   useEffect(() => {
     const to = setTimeout(onEnd, (HIJACK_DURATION + 3) * 1000);
-    return () => clearTimeout(to);
+    const snd = hijackSound();
+    return () => { clearTimeout(to); snd.stop(); };
   }, [event.id]);
 
   return (

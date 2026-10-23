@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RULES } from '../../../shared/board.js';
 import { playerById, money } from '../gameInfo.js';
 import { createSayMyName, LINES, SAY_MY_NAME_DURATION, T_TITLE } from '../saymyname.js';
+import { sayMyNameSound } from '../sound.js';
 
 // Cinématique « Say my name » montrée à tous quand un trafiquant livre sa marchandise
 export default function SayMyNameCinematic({ event, state, onEnd }) {
@@ -36,9 +37,10 @@ export default function SayMyNameCinematic({ event, state, onEnd }) {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+    const snd = sayMyNameSound({ title: T_TITLE, duration: SAY_MY_NAME_DURATION });
     // filet de sécurité si l'onglet est en arrière-plan
     const safety = setTimeout(() => endRef.current?.(), (SAY_MY_NAME_DURATION + 3) * 1000);
-    return () => { cancelAnimationFrame(raf); clearTimeout(safety); film.dispose(); };
+    return () => { cancelAnimationFrame(raf); clearTimeout(safety); snd.stop(); film.dispose(); };
   }, [event.id]);
 
   const line = LINES.find((l) => t >= l.from && t <= l.to);

@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { sfx } from './sound.js';
 
 export const socket = io({ autoConnect: true, transports: ['websocket', 'polling'] });
 
@@ -20,7 +21,7 @@ function emit(event, payload) {
   return new Promise((resolve) => {
     socket.timeout(8000).emit(event, payload, (err, res) => {
       if (err) { toast('Le serveur ne répond pas'); return resolve({ error: 'timeout' }); }
-      if (res?.error) toast(res.error);
+      if (res?.error) { toast(res.error); sfx.error(); }
       resolve(res || {});
     });
   });

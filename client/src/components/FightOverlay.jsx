@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { socket } from '../net.js';
 import { playerById } from '../gameInfo.js';
+import { sfx } from '../sound.js';
 
 const KEYS = {
   up: ['KeyW', 'KeyZ', 'ArrowUp'],
@@ -24,7 +25,22 @@ export default function FightOverlay({ state, me, source = socketSource, onClose
   const [p1, p2] = meta.ids.map((id) => playerById(state, id));
 
   useEffect(() => {
-    return source.subscribe((s) => { fs.current = s; });
+    return source.subscribe((s) => {
+      const p = fs.current;
+      fs.current = s;
+      // bruitages : compte à rebours, tirs, touches, esquives, fin du duel
+      if (!p) return;
+      if (s.phase === 'countdown' && Math.ceil(s.timeLeft - 0.5) !== Math.ceil(p.timeLeft - 0.5)) sfx.beep();
+      if (s.phase === 'fight' && p.phase === 'countdown') sfx.beep(true);
+      if (s.phase === 'over' && p.phase !== 'over') sfx.gong();
+      if (s.bullets.length > p.bullets.length) sfx.shot();
+      for (const f of s.fighters) {
+        const o = p.fighters.find((x) => x.id === f.id);
+        if (!o) continue;
+        if (f.hp < o.hp) sfx.hit();
+        if (f.dash && !o.dash) sfx.dash();
+      }
+    });
   }, [source]);
 
   // commandes clavier/souris si on combat

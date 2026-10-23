@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { sfx } from './sound.js';
 
 const DICE_DELAY = 700; // laisse les dés finir de rouler avant que le pion bouge
 const STEP_MS = 125;
@@ -44,7 +45,7 @@ export function useAnimatedPositions(players) {
         for (const [id, tg] of Object.entries(t)) {
           if (now < tg.startAt) continue;
           if (tg.jump || next[id] == null) next[id] = tg.to;
-          else if (next[id] !== tg.to) next[id] = (next[id] + 1) % 40;
+          else if (next[id] !== tg.to) { next[id] = (next[id] + 1) % 40; sfx.step(); }
           if (next[id] === tg.to) {
             // étape suivante éventuelle (prison) après une courte pause sur la case
             if (tg.then != null) t[id] = { to: tg.then, jump: true, startAt: now + 500 };

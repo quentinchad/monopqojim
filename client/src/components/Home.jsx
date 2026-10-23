@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { flagSvg } from '../flags.js';
 import ThemePicker from './ThemePicker.jsx';
+import SoundToggle from './SoundToggle.jsx';
 
 const FLAGS = ['br', 'cn', 'es', 'de', 'it', 'jp', 'fr', 'us'];
 
@@ -44,7 +45,7 @@ export default function Home({ initialRoom, onEnter }) {
           </>
         )}
       </div>
-      <ThemePicker />
+      <div className="row"><ThemePicker /><SoundToggle /></div>
       <div className="home-rules">
         <div><b>✈️ Aéroports</b> Détournez un avion pour détruire l’hôtel le plus proche.</div>
         <div><b>💊 Trafic</b> Bonus au passage par Départ… ou peine de prison doublée.</div>

@@ -73,6 +73,8 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 
 **Argent de départ** : de 500 $ à 3 000 $, réglable dans le salon.
 
+**🔊 Bruitages** : sons synthétisés en direct (Web Audio, aucun fichier à charger) pour les dés, les pas des pions, votre tour, achats, constructions, loyers et gains, cartes, enchères (mises et marteau), échanges, casino (levier, rouleaux, jackpot), duel du goulag (compte à rebours, tirs, touches), annonces, et une bande-son pour chaque cinématique (réacteurs et explosion, sirène et plaquage, vent du désert et impact du titre « Heisenberg »). Bouton 🔊 / 🔇 et volume réglable dans le salon, l’accueil, la partie et la démo ; le choix est mémorisé dans le navigateur.
+
 **Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
 
 **Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, « Say my name », machine à sous du casino, duel du goulag contre un bot ou entre bots, arrestation « BUSTED », cartes et annonces, dés, statistiques d’une partie simulée entre bots).

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CASINO } from '../../../shared/board.js';
 import { money } from '../gameInfo.js';
+import { sfx } from '../sound.js';
 
 const SYMBOLS = CASINO.SYMBOLS.map((x) => x.s);
 const REEL_TIMES = [1.3, 1.85, 2.4]; // les rouleaux s'arrêtent l'un après l'autre (secondes)
@@ -47,8 +48,16 @@ export default function SlotMachine({ spin, spinsDone = 0, interactive, maxBet, 
     if (!spin || spin.id === firstSpin.current) return;
     setRevealed(false);
     setPulling(true);
+    sfx.lever();
+    sfx.reels(REEL_TIMES);
     const t1 = setTimeout(() => setPulling(false), 450);
-    const t2 = setTimeout(() => setRevealed(true), SLOT_DURATION * 1000);
+    const t2 = setTimeout(() => {
+      setRevealed(true);
+      const [a, b, c] = spin.reels;
+      if (a === b && b === c) sfx.jackpot();
+      else if (spin.win > 0) sfx.slotWin();
+      else sfx.slotLose();
+    }, SLOT_DURATION * 1000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [spin?.id]);
   useEffect(() => { if (bet > maxBet) setBet(Math.max(1, maxBet)); }, [maxBet]);
