@@ -1,4 +1,4 @@
-// Cinématique 3D du détournement d'avion : décollage depuis l'aéroport, vol, crash sur l'hôtel, explosion.
+// Cinématique 3D du détournement d'avion : décollage depuis l'aéroport, vol, crash sur les bâtiments visés, explosion.
 import * as THREE from 'three';
 import { cellCenter, TOTAL } from './layout.js';
 
@@ -64,8 +64,10 @@ export function createHijackCinematic({ scene, camera, cells, from, cell, color 
   const runway = cellWorld(from + 1, 0.24).sub(A).setY(0).normalize();
   const target = cells.find((c) => c.cell.index === cell);
   target.group.updateMatrixWorld(true);
-  const H = target.houses.children[0]
-    ? target.houses.children[0].getWorldPosition(new THREE.Vector3())
+  // point visé : centre des bâtiments (maisons ou hôtel)
+  const kids = target.houses.children;
+  const H = kids.length
+    ? kids.reduce((acc, k) => acc.add(k.getWorldPosition(new THREE.Vector3())), new THREE.Vector3()).divideScalar(kids.length)
     : cellWorld(cell, 0.3);
   const P1 = A.clone().add(runway.clone().multiplyScalar(2.6)).setY(1.4);
   const C1 = P1.clone().add(runway.clone().multiplyScalar(3)).setY(4.5);

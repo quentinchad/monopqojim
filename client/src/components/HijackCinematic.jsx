@@ -11,7 +11,7 @@ export default function HijackCinematic({ event, state, positions, onEnd }) {
   const pilot = playerById(state, event.pid);
   const victim = playerById(state, event.victim);
   const cinematic = useMemo(
-    () => ({ key: event.id, from: event.from, cell: event.cell, color: pilot?.color }),
+    () => ({ key: event.id, from: event.from, cell: event.cell, houses: event.houses ?? 5, color: pilot?.color }),
     [event.id],
   );
 
@@ -35,7 +35,7 @@ export default function HijackCinematic({ event, state, positions, onEnd }) {
           <div className="cc-title">✈️ DÉTOURNEMENT D’AVION</div>
           <div>
             <b style={{ color: pilot?.color }}>{pilot?.name}</b> fait décoller un avion depuis <b>{BOARD[event.from]?.name}</b>
-            {' '}vers l’hôtel de <b style={{ color: victim?.color }}>{victim?.name}</b> à <b>{BOARD[event.cell]?.name}</b>
+            {' '}vers {event.houses && event.houses < 5 ? (event.houses === 1 ? 'la maison' : `les ${event.houses} maisons`) : 'l’hôtel'} de <b style={{ color: victim?.color }}>{victim?.name}</b> à <b>{BOARD[event.cell]?.name}</b>
           </div>
         </div>
         <button className="btn tiny ghost cinematic-skip" onClick={onEnd}>Passer ⏭</button>

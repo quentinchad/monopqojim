@@ -351,8 +351,12 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     resize();
 
     const clock = new THREE.Clock();
+    let lastSize = '';
     const tick = () => {
       w.raf = requestAnimationFrame(tick);
+      // taille vérifiée à chaque image : fiable même si la page était en arrière-plan à l'ouverture
+      const sz = `${el.clientWidth}x${el.clientHeight}`;
+      if (sz !== lastSize) { lastSize = sz; resize(); }
       const rawDt = clock.getDelta();
       const dt = Math.min(0.05, rawDt);
       w.t += dt;
@@ -464,8 +468,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         c.side.color.set(hl === 'target' || hl === 'boom' ? '#ef4444' : owner ? owner.color : w.pal.cellSide);
         c.side.emissive.set(owner ? owner.color : '#000000');
         c.side.emissiveIntensity = owner ? 0.35 : 0;
-        // pendant la cinématique, l'hôtel visé reste debout jusqu'à l'impact
-        const n = w.cineHotel === c.cell.index ? 5 : prop?.houses || 0;
+        // pendant la cinématique, les bâtiments visés restent debout jusqu'à l'impact
+        const n = w.cineHotel === c.cell.index ? w.cineHouses : prop?.houses || 0;
         if (n !== c.houseCount) { c.houseCount = n; buildHouses(c.houses, n, c.depth); }
       }
     };
@@ -524,6 +528,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       return;
     }
     w.cineHotel = cinematic.cell;
+    w.cineHouses = cinematic.houses ?? 5;
     w.refresh?.();
     w.cine = createHijackCinematic({
       scene: w.scene, camera: w.camera, cells: w.cells,

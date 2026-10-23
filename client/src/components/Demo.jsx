@@ -38,7 +38,7 @@ function makeDemoState(target) {
     COUNTRY_CELLS[k].forEach((i, j) => { props[i] = { owner, houses: n % 2 ? 5 : j + 1 }; });
   });
   AIRPORTS.forEach((c, n) => { props[c.index].owner = n % 2 ? 'me' : 'tokyo'; });
-  // l'hôtel visé est déjà détruit dans l'état ; la cinématique le garde debout jusqu'à l'impact
+  // les bâtiments visés sont déjà détruits dans l'état ; la cinématique les garde debout jusqu'à l'impact
   if (target != null) props[target].houses = 0;
   return {
     phase: 'playing',
@@ -52,6 +52,9 @@ function makeDemoState(target) {
     })),
   };
 }
+
+// bâtiments de chaque ville dans la partie fictive (avant détournement)
+const DEMO_HOUSES = Object.fromEntries(Object.entries(makeDemoState(null).props).map(([i, p]) => [i, p.houses]));
 
 const BANNERS = [
   { type: 'card', deck: 'chance', pid: 'me', text: '💊 Trafic de drogue ! Vous transportez une cargaison. Au prochain passage par Départ vous toucherez un bonus… mais si vous tombez sur la prison, la peine est doublée !' },
@@ -138,7 +141,7 @@ export default function Demo() {
   const victim = hijackState.props[target]?.owner;
 
   function playHijack() {
-    setHijack({ id: Date.now(), type: 'hijack', pid: 'me', victim: victim === 'me' ? 'tokyo' : victim, from: airport, cell: target });
+    setHijack({ id: Date.now(), type: 'hijack', pid: 'me', victim: victim === 'me' ? 'tokyo' : victim, from: airport, cell: target, houses: DEMO_HOUSES[target] });
   }
 
   function nextBanner() {
@@ -190,9 +193,9 @@ export default function Demo() {
               {AIRPORTS.map((c) => <option key={c.index} value={c.index}>{c.name}</option>)}
             </select>
           </label>
-          <label className="demo-field">Hôtel visé
+          <label className="demo-field">Ville visée
             <select value={target} onChange={(e) => setTarget(+e.target.value)}>
-              {CITIES.map((c) => <option key={c.index} value={c.index}>{c.name}</option>)}
+              {CITIES.map((c) => <option key={c.index} value={c.index}>{c.name} — {DEMO_HOUSES[c.index] === 5 ? 'hôtel' : `${DEMO_HOUSES[c.index]} maison${DEMO_HOUSES[c.index] > 1 ? 's' : ''}`}</option>)}
             </select>
           </label>
           <button className="btn primary" onClick={playHijack}>▶ Lancer la cinématique</button>

@@ -96,3 +96,35 @@ console.log('parties', games, stats);
   game.destroy();
   console.log('casino / revente / négociation OK');
 }
+
+// Détournement : cible aléatoire parmi les villes adverses construites, coût selon les bâtiments
+{
+  const { hijackCost } = await import('../shared/board.js');
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const seen = new Set();
+  for (let k = 0; k < 60; k++) {
+    const game = new Game('H');
+    const a = game.addPlayer({ name: 'A', token: 'a' });
+    game.addPlayer({ name: 'B', token: 'b' });
+    game.start(a.id);
+    const cur = game.current;
+    const other = game.players.find((p) => p.id !== cur.id);
+    Object.assign(game.props[1], { owner: other.id, houses: 2 });
+    Object.assign(game.props[39], { owner: other.id, houses: 5 });
+    Object.assign(game.props[37], { owner: cur.id, houses: 3 }); // la sienne n'est jamais visée
+    cur.pos = 3;
+    game.forcedDice = [[1, 1]];
+    game.handle(cur.id, { type: 'roll' });
+    if (game.turn.pending?.type === 'buy') game.handle(cur.id, { type: 'decline' });
+    const pend = game.turn.pending;
+    assert(pend?.type === 'hijack' && [1, 39].includes(pend.target), 'cible adverse');
+    assert(pend.cost === hijackCost(BOARD[pend.target], pend.houses), 'coût');
+    seen.add(pend.target);
+    const money = cur.money;
+    game.handle(cur.id, { type: 'hijack', accept: true });
+    assert(game.props[pend.target].houses === 0 && cur.money === money - pend.cost, 'destruction');
+    game.destroy();
+  }
+  assert(seen.size === 2, 'tirage aléatoire');
+  console.log('détournement aléatoire OK');
+}

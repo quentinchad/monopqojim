@@ -46,9 +46,9 @@ La case Casino remplace Shanghai (la Chine compte donc 2 villes : Pékin et Hong
 Il n’y a plus d’hypothèque : pour trouver de l’argent, on vend ses bâtiments (moitié du prix) puis on **revend ses propriétés à la banque** pour la moitié de leur prix d’achat. Elles redeviennent libres à l’achat.
 
 ### ✈️ Aéroports et détournements
-Les gares sont remplacées par 4 aéroports (Dubaï, Charles de Gaulle, JFK, Haneda), loyers 25/50/100/200 $. Quand un joueur s’arrête sur un aéroport (acheté ou non), il peut **détourner un avion** pour détruire l’hôtel adverse le plus proche sur le plateau. Coût : **50 % du prix de construction de cet hôtel** (5 × prix d’une maison du pays), payé à la banque. La ville redevient un terrain nu.
+Les gares sont remplacées par 4 aéroports (Dubaï, Charles de Gaulle, JFK, Haneda), loyers 25/50/100/200 $. Quand un joueur s’arrête sur un aéroport (acheté ou non), il peut **détourner un avion** sur une **ville adverse tirée au hasard** parmi celles qui ont des bâtiments (1 à 4 maisons ou un hôtel) : tous ses bâtiments sont détruits. Coût : **50 % du prix de construction des bâtiments visés** (prix d’une maison × nombre de maisons, × 5 pour un hôtel), payé à la banque. La ville et sa cible sont annoncées avant de confirmer ; la ville redevient un terrain nu.
 
-Chaque détournement déclenche chez tous les joueurs une **cinématique 3D** (~9 s) : l’avion décolle de l’aéroport, vole jusqu’à l’hôtel et s’écrase dessus.
+Chaque détournement déclenche chez tous les joueurs une **cinématique 3D** (~9 s) : l’avion décolle de l’aéroport, vole jusqu’à la ville visée et s’écrase sur ses maisons ou son hôtel.
 
 ### 🚔 Prison
 Chaque envoi en prison (case « Allez en prison », carte, 3 doubles, trafiquant contrôlé) déclenche chez tous les joueurs une **cinématique d’arrestation** (~8 s) : le pion avance jusqu’à la case, s’enfuit vers la prison, un policier le course et le plaque au sol, puis l’écran passe en noir et blanc avec **« BUSTED »** façon GTA.

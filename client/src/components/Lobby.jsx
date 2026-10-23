@@ -90,7 +90,7 @@ export default function Lobby({ state, me, onLeave }) {
           </div>
           <div className="rules-box">
             <p><b>🏙️ Villes & pays</b> — construisez maisons et hôtels quand vous possédez toutes les villes d’un pays.</p>
-            <p><b>✈️ Aéroports</b> — en vous arrêtant sur un aéroport, vous pouvez détourner un avion pour détruire l’hôtel adverse le plus proche (moitié du prix de construction d’un hôtel).</p>
+            <p><b>✈️ Aéroports</b> — en vous arrêtant sur un aéroport, vous pouvez détourner un avion pour détruire les maisons ou l’hôtel d’une ville adverse tirée au hasard (moitié de leur prix de construction).</p>
             <p><b>💊 Trafic de drogue</b> — carte Chance : +300 $ au prochain passage par Départ, mais si vous allez en prison la peine est doublée (6 tours) et seul un double vous libère.</p>
             <p><b>⛓️ Goulag</b> — un joueur en faillite part au goulag (une seule fois par partie). Dès que 2 joueurs y sont et qu’il reste au moins 2 joueurs en jeu, ils s’affrontent en duel : le vainqueur revient, le perdant est éliminé.</p>
             <p><b>🎰 Casino</b> — misez la somme de votre choix à la machine à sous (5 parties max par arrêt) : trois symboles identiques rapportent gros.</p>

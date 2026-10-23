@@ -65,11 +65,11 @@ export default function CellCard({ state, me, index, onClose }) {
             <div className="cc-info">
               <span>🏠 Maison : {money(housePrice(cell))}</span>
               <span>🏨 Hôtel : {money(housePrice(cell))} + 4 maisons</span>
-              <span>✈️ Coût d’un détournement : {money(hijackCost(cell))}</span>
+              <span>✈️ Détournement : {money(hijackCost(cell, 1))} par maison, {money(hijackCost(cell, 5))} pour l’hôtel</span>
             </div>
           )}
           {cell.type === 'airport' && (
-            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour détruire l’hôtel adverse le plus proche (moitié du prix de construction de cet hôtel).</p>
+            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour détruire les bâtiments (maisons ou hôtel) d’une ville adverse tirée au hasard, pour la moitié de leur prix de construction.</p>
           )}
           {cell.price && (
             <div className="cc-info">

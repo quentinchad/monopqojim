@@ -1,6 +1,6 @@
 import {
   BOARD, RULES, CASINO, COUNTRIES, COUNTRY_CELLS, OWNABLE, AIRPORT_RENTS, PLAYER_COLORS,
-  housePrice, hijackCost, boardDistance, casinoPayout, resaleValue,
+  housePrice, hijackCost, casinoPayout, resaleValue,
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
@@ -18,6 +18,7 @@ const ALL_CARDS = Object.fromEntries([...CHANCE_CARDS, ...CHEST_CARDS].map((c) =
 const BOT_NAMES = ['Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul', 'Bot Dakar'];
 
 export class GameError extends Error {}
+const buildingsLabel = (n) => (n === 5 ? 'l’hôtel' : n === 1 ? 'la maison' : `les ${n} maisons`);
 const fail = (msg) => { throw new GameError(msg); };
 
 export const DEFAULT_SETTINGS = {
@@ -605,23 +606,21 @@ export class Game {
   }
 
   // ---------- détournement d'avion ----------
-  hijackTarget(p, fromIndex) {
-    let best = null;
-    for (const c of BOARD) {
-      if (c.type !== 'city') continue;
-      const prop = this.props[c.index];
-      if (prop.houses !== 5 || !prop.owner || prop.owner === p.id) continue;
-      const d = boardDistance(fromIndex, c.index);
-      if (!best || d < best.d) best = { index: c.index, d };
-    }
-    return best ? best.index : null;
+  // Cible tirée au hasard parmi les villes adverses qui ont au moins une maison ou un hôtel
+  hijackTarget(p) {
+    const targets = BOARD.filter((c) => {
+      const prop = c.type === 'city' && this.props[c.index];
+      return prop && prop.houses > 0 && prop.owner && prop.owner !== p.id;
+    });
+    return targets.length ? targets[Math.floor(Math.random() * targets.length)].index : null;
   }
 
   offerHijack(p, airportIndex) {
-    const target = this.hijackTarget(p, airportIndex);
+    const target = this.hijackTarget(p);
     if (target == null) return;
-    const cost = hijackCost(BOARD[target]);
-    this.turn.pending = { type: 'hijack', from: airportIndex, target, cost };
+    const houses = this.props[target].houses;
+    const cost = hijackCost(BOARD[target], houses);
+    this.turn.pending = { type: 'hijack', from: airportIndex, target, houses, cost };
   }
 
   actHijack(p, accept) {
@@ -631,17 +630,25 @@ export class Game {
     if (accept) {
       if (p.money < pend.cost) fail('Pas assez d’argent pour détourner l’avion');
       const prop = this.props[pend.target];
-      if (prop.houses !== 5) fail('L’hôtel n’existe plus');
+      if (prop.houses !== pend.houses || !prop.owner || prop.owner === p.id) {
+        // les bâtiments visés ont changé entre-temps : nouvelle cible (ou plus de détournement possible)
+        this.addLog(`✈️ La cible du détournement a changé`, p.id);
+        this.turn.pending = null;
+        this.offerHijack(p, pend.from);
+        this.updatePhase();
+        return;
+      }
       const victim = this.player(prop.owner);
       p.money -= pend.cost;
       prop.houses = 0;
       this.st(p).hijacks++;
       this.st(victim).hotelsLost++;
       const cell = BOARD[pend.target];
-      this.addLog(`✈️💥 ${p.name} détourne un avion depuis ${BOARD[pend.from].name} et détruit l’hôtel de ${victim.name} à ${cell.name} (${pend.cost} $)`, p.id);
+      const what = buildingsLabel(pend.houses);
+      this.addLog(`✈️💥 ${p.name} détourne un avion depuis ${BOARD[pend.from].name} et détruit ${what} de ${victim.name} à ${cell.name} (${pend.cost} $)`, p.id);
       this.addEvent('hijack', {
-        pid: p.id, victim: victim.id, from: pend.from, cell: pend.target,
-        text: `✈️💥 ${p.name} a détruit l’hôtel de ${victim.name} à ${cell.name} !`,
+        pid: p.id, victim: victim.id, from: pend.from, cell: pend.target, houses: pend.houses,
+        text: `✈️💥 ${p.name} a détruit ${what} de ${victim.name} à ${cell.name} !`,
       });
       // laisse le temps à la cinématique de se jouer chez tout le monde avant que les bots enchaînent
       this.animUntil = Date.now() + 9500;
