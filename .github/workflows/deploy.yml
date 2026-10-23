@@ -1,0 +1,30 @@
+# À chaque push sur main : vérifie que le jeu compile, puis demande à Render de redéployer.
+# Nécessite le secret RENDER_DEPLOY_HOOK_URL (Render > service > Settings > Deploy Hook).
+name: Déploiement Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Déclencher le déploiement sur Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Secret RENDER_DEPLOY_HOOK_URL absent : le déploiement Render n'a pas été déclenché"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Déploiement Render déclenché"
