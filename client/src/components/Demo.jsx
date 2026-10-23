@@ -7,6 +7,7 @@ import HijackCinematic from './HijackCinematic.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import { EventBanner } from './Game.jsx';
 import { useAnimatedPositions } from '../hooks.js';
+import ThemePicker from './ThemePicker.jsx';
 
 const AIRPORTS = BOARD.filter((c) => c.type === 'airport');
 const CITIES = BOARD.filter((c) => c.type === 'city');
@@ -126,6 +127,7 @@ export default function Demo() {
       <div className="demo-head">
         <a className="logo small" href="/">MONOP<span>QOJIM</span></a>
         <h2>🎬 Animations</h2>
+        <ThemePicker />
       </div>
 
       <div className="demo-grid">

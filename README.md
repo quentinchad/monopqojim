@@ -49,6 +49,8 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 ### Le reste
 **Déconnexions** : un joueur qui se déconnecte est joué par un pilote automatique prudent (il lance les dés et finit son tour, sans rien acheter). Un décompte (2 min par défaut, réglable dans le salon) s’affiche chez les autres joueurs, qui peuvent lui accorder +1 min. S’il revient avant la fin, il reprend la main ; sinon il abandonne (ses biens reviennent à la banque, sans goulag).
 
+**Thèmes visuels** : 5 thèmes au choix (🌃 Nuit violette, 🌳 Classique jour, 🌊 Océan, 🌆 Néon, 🏜️ Désert), sélectionnables à tout moment. Chacun change les couleurs de l’interface et du plateau, et en 3D / FPS le ciel, la lumière et le décor autour du plateau (ville illuminée, parc arboré, île tropicale avec bateaux, ville néon, désert avec pyramides). Le choix est propre à chaque joueur.
+
 **Page de démo** : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, duel du goulag contre un bot ou entre bots, cartes et annonces, dés).
 
 Enchères (proposées au joueur qui refuse d’acheter), cagnotte du Parc gratuit (option), hypothèques, échanges libres entre joueurs (argent, villes, cartes prison), faillite, bots pour compléter la partie, reconnexion après rafraîchissement.

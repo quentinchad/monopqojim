@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { flagSvg } from '../flags.js';
+import ThemePicker from './ThemePicker.jsx';
 
 const FLAGS = ['br', 'cn', 'es', 'de', 'it', 'jp', 'fr', 'us'];
 
@@ -43,6 +44,7 @@ export default function Home({ initialRoom, onEnter }) {
           </>
         )}
       </div>
+      <ThemePicker />
       <a className="demo-link" href="/demo">🎬 Voir les animations (avion, goulag, cartes…)</a>
       <div className="home-rules">
         <div><b>✈️ Aéroports</b> Détournez un avion pour détruire l’hôtel le plus proche.</div>

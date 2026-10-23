@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PLAYER_COLORS } from '../../../shared/board.js';
 import { lobby, toast } from '../net.js';
+import ThemePicker from './ThemePicker.jsx';
 
 export default function Lobby({ state, me, onLeave }) {
   const isHost = state.hostId === me;
@@ -19,6 +20,7 @@ export default function Lobby({ state, me, onLeave }) {
     <div className="lobby">
       <div className="lobby-header">
         <h1 className="logo small" onClick={onLeave}>MONOP<span>QOJIM</span></h1>
+        <ThemePicker />
         <div className="room-code">Partie <b>{state.id}</b></div>
       </div>
       <div className="lobby-grid">

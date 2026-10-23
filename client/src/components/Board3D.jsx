@@ -6,6 +6,8 @@ import { cellRect, cellCenter, tokenOffset, TOTAL } from '../layout.js';
 import { flagDataUrl } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { createHijackCinematic } from '../cinematic.js';
+import { THEMES, useThemeId } from '../themes.js';
+import { buildScenery } from '../scenery.js';
 
 const HALF = TOTAL / 2;
 const CELL_H = 0.14;
@@ -49,11 +51,11 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawCell(ctx, W, H, cell, state) {
+function drawCell(ctx, W, H, cell, state, pal) {
   const prop = state.props[cell.index];
   const owner = prop?.owner && playerById(state, prop.owner);
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#2a2346';
+  ctx.fillStyle = pal.cellBg;
   ctx.fillRect(0, 0, W, H);
   if (owner) {
     ctx.fillStyle = owner.color;
@@ -64,13 +66,13 @@ function drawCell(ctx, W, H, cell, state) {
     ctx.lineWidth = 14;
     ctx.strokeRect(7, 7, W - 14, H - 14);
   } else {
-    ctx.strokeStyle = '#463b6e';
+    ctx.strokeStyle = pal.cellLine;
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, W - 4, H - 4);
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = pal.cellText;
 
   const bottomTag = () => {
     if (owner) {
@@ -82,7 +84,7 @@ function drawCell(ctx, W, H, cell, state) {
       ctx.font = 'bold 24px Nunito, sans-serif';
       ctx.fillText(label, W / 2, H - 37);
     } else if (cell.price) {
-      ctx.fillStyle = '#c4b5fd';
+      ctx.fillStyle = pal.price;
       ctx.font = 'bold 28px Nunito, sans-serif';
       ctx.fillText(money(cell.price), W / 2, H - 36);
     }
@@ -99,7 +101,7 @@ function drawCell(ctx, W, H, cell, state) {
       ctx.lineWidth = 2;
       ctx.strokeRect(W / 2 - 30, H * 0.12 - 20, 60, 40);
     }
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = pal.cellText;
     ctx.font = 'bold 26px Nunito, sans-serif';
     wrapText(ctx, cell.name.toUpperCase(), W / 2, H * 0.38, W - 16, 30);
     bottomTag();
@@ -107,7 +109,7 @@ function drawCell(ctx, W, H, cell, state) {
     const icon = { airport: '✈️', chance: '❓', chest: '📦', tax: '💸' }[cell.type] || cell.icon;
     ctx.font = `64px ${EMOJI_FONT}`;
     ctx.fillText(icon, W / 2, H * 0.3);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = pal.cellText;
     ctx.font = 'bold 22px Nunito, sans-serif';
     const name = cell.type === 'chest' ? 'CAISSE DE COMMUNAUTÉ' : cell.name.toUpperCase();
     wrapText(ctx, name, W / 2, H * 0.52, W - 16, 26);
@@ -125,10 +127,10 @@ function drawCell(ctx, W, H, cell, state) {
     }[cell.type];
     ctx.font = `96px ${EMOJI_FONT}`;
     ctx.fillText(conf[0], W / 2, H * 0.38);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = pal.cellText;
     ctx.font = 'bold 34px Nunito, sans-serif';
     ctx.fillText(conf[1], W / 2, H * 0.68);
-    ctx.fillStyle = '#c4b5fd';
+    ctx.fillStyle = pal.price;
     ctx.font = 'bold 28px Nunito, sans-serif';
     ctx.fillText(conf[2], W / 2, H * 0.82);
   }
@@ -138,10 +140,10 @@ function drawCell(ctx, W, H, cell, state) {
   }
 }
 
-function drawCenter(ctx, S) {
+function drawCenter(ctx, S, pal) {
   const g = ctx.createRadialGradient(S / 2, S / 2, 40, S / 2, S / 2, S * 0.7);
-  g.addColorStop(0, '#2d2350');
-  g.addColorStop(1, '#17122b');
+  g.addColorStop(0, pal.centerA);
+  g.addColorStop(1, pal.centerB);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, S, S);
   ctx.textAlign = 'center';
@@ -151,9 +153,9 @@ function drawCenter(ctx, S) {
   ctx.fillText('🌍', S / 2, S / 2 - 40);
   ctx.globalAlpha = 1;
   ctx.font = '900 110px Nunito, sans-serif';
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = pal.logoA;
   ctx.fillText('MONOP', S / 2 - 140, S / 2 + 140);
-  ctx.fillStyle = '#a78bfa';
+  ctx.fillStyle = pal.logoB;
   ctx.fillText('QOJIM', S / 2 + 175, S / 2 + 140);
 }
 
@@ -222,6 +224,7 @@ function cellWorld(i, y = 0) {
 
 export default function Board3D({ state, positions, onCellClick, highlights, mode = 'orbit', followId, cinematic, onCinematicEnd }) {
   const mount = useRef(null);
+  const themeId = useThemeId();
   const world = useRef(null);
   const clickRef = useRef(onCellClick);
   clickRef.current = onCellClick;
@@ -239,17 +242,17 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     el.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0d0a1a');
-    scene.fog = new THREE.Fog('#0d0a1a', 25, 50);
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    scene.fog = new THREE.Fog('#0d0a1a', 30, 90);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 220);
     camera.position.copy(ORBIT_CAMERA);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.maxPolarAngle = 1.3;
     controls.minDistance = 5;
-    controls.maxDistance = 26;
+    controls.maxDistance = 34;
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x2a1f4d, 1.1));
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x2a1f4d, 1.1);
+    scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 1.6);
     sun.position.set(6, 14, 8);
     sun.castShadow = true;
@@ -268,7 +271,6 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     // centre du plateau
     const cc = document.createElement('canvas');
     cc.width = cc.height = 1024;
-    drawCenter(cc.getContext('2d'), 1024);
     const centerTex = new THREE.CanvasTexture(cc);
     centerTex.colorSpace = THREE.SRGBColorSpace;
     const center = new THREE.Mesh(new THREE.PlaneGeometry(TOTAL - 3.2, TOTAL - 3.2), new THREE.MeshStandardMaterial({ map: centerTex }));
@@ -289,7 +291,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = 8;
       const top = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
-      const side = new THREE.MeshStandardMaterial({ color: '#1d1733', roughness: 0.6 });
+      const side = new THREE.MeshStandardMaterial({ color: THEMES.nuit.scene.cellSide, roughness: 0.6 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.03, CELL_H, cd - 0.03), [side, side, top, side, side, side]);
       mesh.receiveShadow = true;
       mesh.userData.index = cell.index;
@@ -305,6 +307,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
 
     const w = {
       renderer, scene, camera, controls, cells, tokens: new Map(), flagsReady: false, raf: 0,
+      hemi, sun, base, cc, centerTex, scenery: null, pal: THEMES.nuit.scene, themeId: null,
       state: null, highlights: {}, t: 0, mode: 'orbit', followId: null,
       // vue FPS : regard libre (yaw/pitch) qui revient doucement vers l'avant
       fps: { yaw: 0, pitch: 0, look: null, eye: null, dragging: false },
@@ -398,12 +401,14 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         const targetY = CELL_H / 2 + (hl ? 0.12 + Math.sin(w.t * 6) * 0.04 : 0);
         c.group.position.y += (targetY - c.group.position.y) * 0.2;
       }
+      w.scenery?.update(w.t);
       renderer.render(scene, camera);
     };
     tick();
 
     return () => {
       cancelAnimationFrame(w.raf);
+      w.scenery?.dispose();
       window.removeEventListener('pointerup', onRelease);
       ro.disconnect();
       controls.dispose();
@@ -413,6 +418,30 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       world.current = null;
     };
   }, []);
+
+  // Thème : ciel, brouillard, lumières, décor autour du plateau et couleurs des cases
+  useEffect(() => {
+    const w = world.current;
+    if (!w) return;
+    const sc = (THEMES[themeId] || THEMES.nuit).scene;
+    w.pal = sc;
+    w.themeId = themeId;
+    w.scene.fog.color.set(sc.fog);
+    w.scene.fog.near = sc.fogNear;
+    w.scene.fog.far = sc.fogFar;
+    w.hemi.color.set(sc.hemi[0]);
+    w.hemi.groundColor.set(sc.hemi[1]);
+    w.hemi.intensity = sc.hemi[2];
+    w.sun.color.set(sc.sun[0]);
+    w.sun.intensity = sc.sun[1];
+    w.base.material.color.set(sc.base);
+    drawCenter(w.cc.getContext('2d'), 1024, sc);
+    w.centerTex.needsUpdate = true;
+    if (w.scenery) { w.scene.remove(w.scenery.group); w.scenery.dispose(); }
+    w.scenery = buildScenery(sc);
+    w.scene.add(w.scenery.group);
+    w.refresh?.();
+  }, [themeId]);
 
   // Mise à jour des cases (propriétaire, bâtiments, hypothèques)
   useEffect(() => {
@@ -424,14 +453,14 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         const prop = state.props[c.cell.index];
         const owner = prop?.owner && playerById(state, prop.owner);
         const hl = w.highlights[c.cell.index];
-        const sig = [owner?.color, prop?.mortgaged, prop?.houses, currentRent(state, c.cell.index), w.flagsReady,
+        const sig = [w.themeId, owner?.color, prop?.mortgaged, prop?.houses, currentRent(state, c.cell.index), w.flagsReady,
           c.cell.type === 'parking' ? state.pot : 0].join('|');
         if (sig !== c.sig) {
           c.sig = sig;
-          drawCell(c.canvas.getContext('2d'), c.canvas.width, c.canvas.height, c.cell, state);
+          drawCell(c.canvas.getContext('2d'), c.canvas.width, c.canvas.height, c.cell, state, w.pal);
           c.tex.needsUpdate = true;
         }
-        c.side.color.set(hl === 'target' || hl === 'boom' ? '#ef4444' : owner ? owner.color : '#1d1733');
+        c.side.color.set(hl === 'target' || hl === 'boom' ? '#ef4444' : owner ? owner.color : w.pal.cellSide);
         c.side.emissive.set(owner ? owner.color : '#000000');
         c.side.emissiveIntensity = owner ? 0.35 : 0;
         // pendant la cinématique, l'hôtel visé reste debout jusqu'à l'impact

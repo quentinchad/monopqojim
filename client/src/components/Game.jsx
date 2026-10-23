@@ -6,6 +6,7 @@ import TradeModal from './TradeModal.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
+import ThemePicker from './ThemePicker.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { PlayersPanel, TradesPanel, MyProperties, LogChat } from './Panels.jsx';
 import { useAnimatedPositions, useElementSize } from '../hooks.js';
@@ -114,6 +115,7 @@ export default function Game({ state, me, onLeave }) {
           <button className={view === '3d' ? 'active' : ''} onClick={() => setView('3d')}>Vue 3D</button>
           <button className={view === 'fps' ? 'active' : ''} onClick={() => setView('fps')} title="Vue à la première personne depuis votre pion">Vue FPS</button>
         </div>
+        <ThemePicker />
         <LogChat state={state} me={me} />
       </aside>
 
