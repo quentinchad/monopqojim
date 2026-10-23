@@ -133,6 +133,18 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
           </div>
         </div>
       );
+    } else if (pend?.type === 'card') {
+      // la carte s'applique seulement quand le joueur l'a lue et a cliqué
+      const label = { moveTo: 'Y aller ➜', nearest: 'Y aller ➜', moveBy: 'Reculer ↩', jail: 'Aller en prison 🚔', jailCard: 'Garder la carte 🎫' }[pend.kind] || 'OK ✓';
+      body = (
+        <div className="decision">
+          <div className={`drawn-card deck-${pend.deck}`}>
+            <div className="ec-deck">{pend.deck === 'chance' ? '❓ CHANCE' : '📦 CAISSE DE COMMUNAUTÉ'}</div>
+            <div className="ec-text">{pend.text}</div>
+          </div>
+          <button className="btn primary big" onClick={() => act('cardOk')}>{label}</button>
+        </div>
+      );
     } else if (pend?.type === 'casino') {
       body = (
         <SlotMachine spin={pend.last} spinsDone={pend.spins} interactive maxBet={Math.max(0, meP.money)} player={meP}
@@ -178,6 +190,7 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
         <span className="dot" style={{ background: cur.color }} /> <b>{cur.name}</b> joue…
         {t.pending?.type === 'buy' && <div className="sub">hésite à acheter {BOARD[t.pending.cell].name}</div>}
         {t.pending?.type === 'hijack' && <div className="sub">✈️ envisage de détourner un avion…</div>}
+        {t.pending?.type === 'card' && <div className="sub">🃏 lit sa carte {t.pending.deck === 'chance' ? 'Chance' : 'Caisse de communauté'}…</div>}
       </div>
     );
   }

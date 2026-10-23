@@ -129,3 +129,24 @@ console.log('parties', games, stats);
   assert(seen.size === 2, 'tirage aléatoire');
   console.log('détournement aléatoire OK');
 }
+
+// Cartes : l'effet attend que le joueur ait cliqué
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('C');
+  const a = game.addPlayer({ name: 'A', token: 'a' });
+  game.addPlayer({ name: 'B', token: 'b' });
+  game.start(a.id);
+  const cur = game.current;
+  game.decks.chance = ['c_ny', ...game.decks.chance.filter((x) => x !== 'c_ny')];
+  game.forcedDice = [[3, 4]];
+  game.handle(cur.id, { type: 'roll' });
+  assert(cur.pos === 7 && game.turn.pending?.type === 'card' && game.turn.pending.cardId === 'c_ny', 'carte en attente');
+  let blocked = false;
+  try { game.handle(cur.id, { type: 'endTurn' }); } catch { blocked = true; }
+  assert(blocked, 'tour bloqué tant que la carte n’est pas validée');
+  game.handle(cur.id, { type: 'cardOk' });
+  assert(cur.pos === 39 && game.turn.pending?.type === 'buy', 'déplacement après le clic');
+  game.destroy();
+  console.log('cartes validées par le joueur OK');
+}

@@ -120,7 +120,9 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // la cinématique remplace la bannière pour les détournements
   const cinematic = (event?.type === 'hijack' && event.from != null) || event?.type === 'busted' || event?.type === 'delivery' ? event : null;
-  const bannerEvent = cinematic ? null : event;
+  // la carte que je dois valider est déjà affichée au centre, avec son bouton
+  const myCard = event?.type === 'card' && event.pid === me && state.turn?.pending?.type === 'card';
+  const bannerEvent = cinematic || myCard ? null : event;
 
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(inviteLink(state.id)); toast('Lien copié !', 'info'); } catch { /* ignore */ }

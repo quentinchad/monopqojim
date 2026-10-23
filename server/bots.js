@@ -110,6 +110,7 @@ export function botStep(game) {
     if (pend?.type === 'buy') return tryAct(game, p, { type: 'decline' });
     if (pend?.type === 'hijack') return tryAct(game, p, { type: 'hijack', accept: false });
     if (pend?.type === 'casino') return tryAct(game, p, { type: 'casinoLeave' });
+    if (pend?.type === 'card') return tryAct(game, p, { type: 'cardOk' });
     return tryAct(game, p, { type: t.phase === 'roll' ? 'roll' : 'endTurn' });
   }
   if (pend?.type === 'buy') {
@@ -123,6 +124,7 @@ export function botStep(game) {
   if (pend?.type === 'hijack') {
     return tryAct(game, p, { type: 'hijack', accept: p.money - pend.cost > 300 && Math.random() < 0.6 });
   }
+  if (pend?.type === 'card') return tryAct(game, p, { type: 'cardOk' });
   if (pend?.type === 'casino') {
     // tente sa chance une ou deux fois avec une petite mise quand il est à l'aise
     const bet = Math.floor(p.money * 0.08);

@@ -229,6 +229,7 @@ export class Game {
       case 'casinoSpin': this.actCasinoSpin(p, a.bet); break;
       case 'casinoLeave': this.actCasinoLeave(p); break;
       case 'hijack': this.actHijack(p, !!a.accept); break;
+      case 'cardOk': this.actCardOk(p); break;
       case 'bankrupt': this.actBankrupt(p); break;
       case 'proposeTrade': this.actProposeTrade(p, a); break;
       case 'acceptTrade': this.actAcceptTrade(p, a.id); break;
@@ -668,9 +669,19 @@ export class Game {
     const label = deck === 'chance' ? 'Chance' : 'Caisse de communauté';
     this.addLog(`${p.name} tire une carte ${label} : « ${card.text} »`, p.id);
     this.st(p).cards++;
-    // la carte « Allez en prison » est présentée par la cinématique d'arrestation
-    if (card.action.kind !== 'jail') this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
-    this.applyCard(p, card);
+    this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
+    // l'effet n'est appliqué que lorsque le joueur a lu la carte et cliqué (les bots attendent un peu)
+    this.turn.pending = { type: 'card', deck, cardId: card.id, text: card.text, kind: card.action.kind };
+    this.animUntil = Math.max(this.animUntil || 0, Date.now() + 3500);
+  }
+
+  actCardOk(p) {
+    this.requireTurn(p);
+    const pend = this.turn.pending;
+    if (pend?.type !== 'card') fail('Aucune carte à jouer');
+    this.turn.pending = null;
+    this.applyCard(p, ALL_CARDS[pend.cardId]);
+    this.updatePhase();
   }
 
   applyCard(p, card) {
