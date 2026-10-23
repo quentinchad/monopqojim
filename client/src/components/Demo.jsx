@@ -1,0 +1,185 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BOARD, COUNTRY_CELLS, OWNABLE, RULES } from '../../../shared/board.js';
+import { Fight, ARENA } from '../../../server/fight.js';
+import Board2D from './Board2D.jsx';
+import { Dice } from './CenterControls.jsx';
+import HijackCinematic from './HijackCinematic.jsx';
+import FightOverlay from './FightOverlay.jsx';
+import { EventBanner } from './Game.jsx';
+import { useAnimatedPositions } from '../hooks.js';
+
+const AIRPORTS = BOARD.filter((c) => c.type === 'airport');
+const CITIES = BOARD.filter((c) => c.type === 'city');
+
+const PLAYERS = [
+  { id: 'me', name: 'Vous', color: '#ef4444' },
+  { id: 'tokyo', name: 'Bot Tokyo', color: '#3b82f6', isBot: true },
+  { id: 'rio', name: 'Bot Rio', color: '#22c55e', isBot: true },
+  { id: 'berlin', name: 'Bot Berlin', color: '#eab308', isBot: true },
+];
+
+// Partie fictive : chaque pays appartient à un joueur, avec quelques constructions
+function makeDemoState(target) {
+  const props = {};
+  const countries = Object.keys(COUNTRY_CELLS);
+  for (const i of OWNABLE) props[i] = { owner: null, houses: 0, mortgaged: false };
+  countries.forEach((k, n) => {
+    const owner = PLAYERS[(n % 3) + 1].id;
+    COUNTRY_CELLS[k].forEach((i, j) => { props[i] = { owner, houses: n % 2 ? 5 : j + 1, mortgaged: false }; });
+  });
+  AIRPORTS.forEach((c, n) => { props[c.index].owner = n % 2 ? 'me' : 'tokyo'; });
+  // l'hôtel visé est déjà détruit dans l'état ; la cinématique le garde debout jusqu'à l'impact
+  if (target != null) props[target].houses = 0;
+  return {
+    phase: 'playing',
+    settings: { freeParkingPot: true, goulagMoney: RULES.GOULAG_RETURN_MONEY },
+    pot: 350,
+    props,
+    turn: null,
+    players: PLAYERS.map((p, k) => ({
+      ...p, money: 1500, pos: [0, 12, 24, 33][k], status: 'alive', connected: true,
+      jail: { in: false, turns: 0, heavy: false }, jailCards: [],
+    })),
+  };
+}
+
+const BANNERS = [
+  { type: 'card', deck: 'chance', pid: 'me', text: '💊 Trafic de drogue ! Vous transportez une cargaison. Au prochain passage par Départ vous toucherez un bonus… mais si vous tombez sur la prison, la peine est doublée !' },
+  { type: 'traffic', pid: 'me', text: `Vous avez livré la marchandise : +${RULES.TRAFFIC_BONUS} $ 💰` },
+  { type: 'jail', pid: 'me', text: '🚔 Vous vous faites arrêter en plein trafic ! Peine doublée.' },
+  { type: 'card', deck: 'chance', pid: 'tokyo', text: '🔀 Échange forcé ! Une de vos villes est échangée au hasard contre une ville d’un autre joueur.' },
+  { type: 'swap', pid: 'tokyo', text: '🔀 Échange forcé : Bot Tokyo donne Rome et reçoit Paris de Vous' },
+  { type: 'card', deck: 'chest', pid: 'rio', text: 'C’est votre anniversaire : chaque joueur vous donne 10 $.' },
+  { type: 'goulag', pid: 'berlin', text: '⛓️ Bot Berlin part au goulag !' },
+  { type: 'fight', text: '⚔️ Combat du goulag : Bot Berlin vs Vous' },
+  { type: 'goulagWin', pid: 'me', text: '🔥 Vous revenez du goulag avec 1 000 $ !' },
+  { type: 'disconnect', pid: 'rio', text: '📴 Bot Rio s’est déconnecté' },
+  { type: 'win', pid: 'me', text: '🏆 Vous remportez la partie !' },
+];
+
+function useLocalFight(active, withHuman) {
+  const [handle, setHandle] = useState(null);
+  useEffect(() => {
+    if (!active) return;
+    const subs = new Set();
+    const players = withHuman
+      ? [{ id: 'me', isBot: false, connected: true }, { id: 'berlin', isBot: true, connected: true }]
+      : [{ id: 'tokyo', isBot: true, connected: true }, { id: 'berlin', isBot: true, connected: true }];
+    const fight = new Fight(players, {
+      onTick: (s) => subs.forEach((fn) => fn(s)),
+      onEnd: () => {},
+    });
+    setHandle({
+      key: Math.random(),
+      ids: players.map((p) => p.id),
+      source: {
+        subscribe: (fn) => { subs.add(fn); return () => subs.delete(fn); },
+        send: (inp) => fight.input('me', inp),
+      },
+    });
+    return () => { fight.stop(); setHandle(null); };
+  }, [active, withHuman]);
+  return handle;
+}
+
+export default function Demo() {
+  const [airport, setAirport] = useState(15);
+  const [target, setTarget] = useState(19);
+  const [hijack, setHijack] = useState(null);
+  const [fightMode, setFightMode] = useState(null); // 'human' | 'bots'
+  const [banner, setBanner] = useState(null);
+  const bannerIdx = useRef(0);
+  const [boardState, setBoardState] = useState(() => makeDemoState(null));
+  const [positions] = useAnimatedPositions(boardState.players);
+  const fight = useLocalFight(!!fightMode, fightMode === 'human');
+
+  const hijackState = useMemo(() => makeDemoState(hijack?.cell), [hijack?.id]);
+  const victim = hijackState.props[target]?.owner;
+
+  function playHijack() {
+    setHijack({ id: Date.now(), type: 'hijack', pid: 'me', victim: victim === 'me' ? 'tokyo' : victim, from: airport, cell: target });
+  }
+
+  function nextBanner() {
+    const b = BANNERS[bannerIdx.current % BANNERS.length];
+    bannerIdx.current++;
+    setBanner({ ...b, id: Date.now() });
+  }
+
+  function roll() {
+    const d = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    setBoardState((s) => ({
+      ...s,
+      turn: { pid: 'me', dice: d, rollId: (s.turn?.rollId || 0) + 1 },
+      players: s.players.map((p) => (p.id === 'me' ? { ...p, pos: (p.pos + d[0] + d[1]) % 40 } : p)),
+    }));
+  }
+
+  const fightState = fight && {
+    ...hijackState,
+    settings: { goulagMoney: RULES.GOULAG_RETURN_MONEY },
+    fight: { ids: fight.ids, W: ARENA.W, H: ARENA.H, obstacles: ARENA.obstacles },
+  };
+
+  return (
+    <div className="demo">
+      <div className="demo-head">
+        <a className="logo small" href="/">MONOP<span>QOJIM</span></a>
+        <h2>🎬 Animations</h2>
+      </div>
+
+      <div className="demo-grid">
+        <section className="panel">
+          <h3>✈️ Détournement d’avion (cinématique 3D)</h3>
+          <p className="muted">Montrée à tous les joueurs quand quelqu’un détourne un avion.</p>
+          <label className="demo-field">Aéroport de départ
+            <select value={airport} onChange={(e) => setAirport(+e.target.value)}>
+              {AIRPORTS.map((c) => <option key={c.index} value={c.index}>{c.name}</option>)}
+            </select>
+          </label>
+          <label className="demo-field">Hôtel visé
+            <select value={target} onChange={(e) => setTarget(+e.target.value)}>
+              {CITIES.map((c) => <option key={c.index} value={c.index}>{c.name}</option>)}
+            </select>
+          </label>
+          <button className="btn primary" onClick={playHijack}>▶ Lancer la cinématique</button>
+        </section>
+
+        <section className="panel">
+          <h3>⚔️ Combat du goulag</h3>
+          <p className="muted">ZQSD / WASD / flèches pour bouger, souris pour viser, clic pour tirer, Espace pour esquiver.</p>
+          <button className="btn primary" onClick={() => setFightMode('human')}>▶ Jouer contre un bot</button>
+          <button className="btn" onClick={() => setFightMode('bots')}>👀 Regarder bot contre bot</button>
+        </section>
+
+        <section className="panel">
+          <h3>🃏 Cartes et annonces</h3>
+          <p className="muted">Trafic, arrestation, échange forcé, goulag, victoire… (cliquez plusieurs fois)</p>
+          <button className="btn primary" onClick={nextBanner}>▶ Annonce suivante</button>
+        </section>
+
+        <section className="panel">
+          <h3>🎲 Dés et déplacement</h3>
+          <p className="muted">Les dés roulent, puis le pion avance case par case.</p>
+          <button className="btn primary" onClick={roll}>🎲 Lancer les dés</button>
+        </section>
+      </div>
+
+      <div className="demo-board">
+        <Board2D state={boardState} size={Math.min(640, window.innerWidth - 32)} positions={positions} onCellClick={() => {}}>
+          <div className="center-controls">
+            <Dice turn={boardState.turn} />
+          </div>
+          <EventBanner event={banner} state={boardState} onClose={() => setBanner(null)} />
+        </Board2D>
+      </div>
+
+      {hijack && (
+        <HijackCinematic event={hijack} state={hijackState} positions={{}} onEnd={() => setHijack(null)} />
+      )}
+      {fightState && (
+        <FightOverlay key={fight.key} state={fightState} me="me" source={fight.source} onClose={() => setFightMode(null)} />
+      )}
+    </div>
+  );
+}

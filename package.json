@@ -1,0 +1,29 @@
+{
+  "name": "monopqojim",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Monopoly en ligne multijoueur avec villes du monde, aéroports, trafic, goulag et vue 3D",
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"node --watch server/index.js\" \"vite\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node server/selftest.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^8.2.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io-client": "^4.8.4",
+    "three": "^0.160.1",
+    "vite": "^5.4.21"
+  }
+}

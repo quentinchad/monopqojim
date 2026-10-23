@@ -1,0 +1,44 @@
+// Cartes Chance et Caisse de communauté.
+// Chaque carte : { id, text, action } — l'action est interprétée par le serveur.
+
+export const CHANCE_CARDS = [
+  { id: 'c_go', text: 'Avancez jusqu’à la case Départ. Recevez 200 $.', action: { kind: 'moveTo', to: 0 } },
+  { id: 'c_rome', text: 'Escapade romaine : rendez-vous à Rome.', action: { kind: 'moveTo', to: 24 } },
+  { id: 'c_ny', text: 'Direction Times Square : rendez-vous à New York.', action: { kind: 'moveTo', to: 39 } },
+  { id: 'c_madrid', text: 'Match au Bernabéu : rendez-vous à Madrid.', action: { kind: 'moveTo', to: 13 } },
+  { id: 'c_cdg', text: 'Vol pour l’aéroport Charles de Gaulle.', action: { kind: 'moveTo', to: 15 } },
+  { id: 'c_airport', text: 'Avancez jusqu’à l’aéroport le plus proche. S’il appartient à un joueur, payez le double du loyer.', action: { kind: 'nearest', target: 'airport' } },
+  { id: 'c_airport2', text: 'Avancez jusqu’à l’aéroport le plus proche. S’il appartient à un joueur, payez le double du loyer.', action: { kind: 'nearest', target: 'airport' } },
+  { id: 'c_utility', text: 'Avancez jusqu’à la compagnie la plus proche. Si elle appartient à un joueur, payez 10 × les dés.', action: { kind: 'nearest', target: 'utility' } },
+  { id: 'c_dividend', text: 'La banque vous verse un dividende de 50 $.', action: { kind: 'money', amount: 50 } },
+  { id: 'c_jailfree', text: 'Vous êtes libéré de prison. Conservez cette carte.', action: { kind: 'jailCard' } },
+  { id: 'c_back3', text: 'Reculez de 3 cases.', action: { kind: 'moveBy', steps: -3 } },
+  { id: 'c_jail', text: 'Allez en prison. Ne passez pas par la case Départ.', action: { kind: 'jail' } },
+  { id: 'c_repairs', text: 'Rénovations : payez 25 $ par maison et 100 $ par hôtel.', action: { kind: 'repairs', house: 25, hotel: 100 } },
+  { id: 'c_speeding', text: 'Excès de vitesse : amende de 15 $.', action: { kind: 'money', amount: -15 } },
+  { id: 'c_chairman', text: 'Élu président du conseil : payez 50 $ à chaque joueur.', action: { kind: 'payEach', amount: 50 } },
+  { id: 'c_loan', text: 'Votre placement immobilier vous rapporte 150 $.', action: { kind: 'money', amount: 150 } },
+  { id: 'c_traffic', text: '💊 Trafic de drogue ! Vous transportez une cargaison. Au prochain passage par Départ vous toucherez un bonus… mais si vous tombez sur la prison, la peine est doublée !', action: { kind: 'traffic' } },
+  { id: 'c_traffic2', text: '💊 Un cartel vous recrute ! Livrez la marchandise : bonus au prochain passage par Départ, mais peine doublée si vous êtes arrêté.', action: { kind: 'traffic' } },
+  { id: 'c_swap', text: '🔀 Échange forcé ! Une de vos villes est échangée au hasard contre une ville d’un autre joueur.', action: { kind: 'swap' } },
+  { id: 'c_swap2', text: '🔀 Accord diplomatique imposé ! Échange forcé d’une de vos villes contre celle d’un adversaire.', action: { kind: 'swap' } },
+];
+
+export const CHEST_CARDS = [
+  { id: 'h_go', text: 'Avancez jusqu’à la case Départ. Recevez 200 $.', action: { kind: 'moveTo', to: 0 } },
+  { id: 'h_bank', text: 'Erreur de la banque en votre faveur : recevez 200 $.', action: { kind: 'money', amount: 200 } },
+  { id: 'h_doctor', text: 'Frais de médecin : payez 50 $.', action: { kind: 'money', amount: -50 } },
+  { id: 'h_stock', text: 'Vente d’actions : recevez 50 $.', action: { kind: 'money', amount: 50 } },
+  { id: 'h_jailfree', text: 'Vous êtes libéré de prison. Conservez cette carte.', action: { kind: 'jailCard' } },
+  { id: 'h_jail', text: 'Allez en prison. Ne passez pas par la case Départ.', action: { kind: 'jail' } },
+  { id: 'h_holiday', text: 'Votre fonds de vacances arrive à échéance : recevez 100 $.', action: { kind: 'money', amount: 100 } },
+  { id: 'h_tax', text: 'Remboursement d’impôts : recevez 20 $.', action: { kind: 'money', amount: 20 } },
+  { id: 'h_birthday', text: 'C’est votre anniversaire : chaque joueur vous donne 10 $.', action: { kind: 'collectEach', amount: 10 } },
+  { id: 'h_life', text: 'Votre assurance vie arrive à échéance : recevez 100 $.', action: { kind: 'money', amount: 100 } },
+  { id: 'h_hospital', text: 'Frais d’hôpital : payez 100 $.', action: { kind: 'money', amount: -100 } },
+  { id: 'h_school', text: 'Frais de scolarité : payez 50 $.', action: { kind: 'money', amount: -50 } },
+  { id: 'h_consult', text: 'Honoraires de consultant : recevez 25 $.', action: { kind: 'money', amount: 25 } },
+  { id: 'h_repairs', text: 'Travaux de voirie : payez 40 $ par maison et 115 $ par hôtel.', action: { kind: 'repairs', house: 40, hotel: 115 } },
+  { id: 'h_beauty', text: 'Deuxième prix de beauté : recevez 10 $.', action: { kind: 'money', amount: 10 } },
+  { id: 'h_inherit', text: 'Vous héritez de 100 $.', action: { kind: 'money', amount: 100 } },
+];
