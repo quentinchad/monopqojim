@@ -7,7 +7,7 @@ export const HIJACK_DURATION = 9.2; // secondes
 
 const T_TAKEOFF = 1.4; // début du roulage
 const T_AIRBORNE = 3.0; // fin du décollage
-const T_IMPACT = 6.6;
+export const T_IMPACT = 6.6;
 
 const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
 const easeIn = (x) => x * x * x;

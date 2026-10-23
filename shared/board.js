@@ -10,9 +10,8 @@ export const RULES = {
   // Trafic de drogue : peine doublée et bonus au passage par la case Départ
   TRAFFIC_JAIL_TURNS: 6,
   TRAFFIC_BONUS: 300,
-  // Détournement d'avion : coût = ce pourcentage du prix de construction des bâtiments détruits
-  // (maisons, ou hôtel = 5 × prix d'une maison)
-  HIJACK_COST_RATIO: 0.5,
+  // Détournement d'avion : prix fixe, payé avant de savoir sur quelle ville adverse l'avion s'écrase
+  HIJACK_PRICE: 150,
   // Goulag : argent rendu au gagnant du combat
   GOULAG_RETURN_MONEY: 1000,
   MAX_PLAYERS: 8,
@@ -130,11 +129,6 @@ export function housePrice(cell) {
 // Prix de revente d'une propriété à la banque
 export function resaleValue(cell) {
   return Math.round((cell.price || 0) * RULES.RESALE_RATIO);
-}
-
-// Coût d'un détournement visant une ville avec `houses` bâtiments (1 à 4 maisons, 5 = hôtel)
-export function hijackCost(cell, houses = 5) {
-  return Math.round(housePrice(cell) * houses * RULES.HIJACK_COST_RATIO);
 }
 
 // Distance circulaire minimale entre deux cases

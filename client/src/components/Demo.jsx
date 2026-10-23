@@ -122,7 +122,7 @@ function useLocalFight(active, withHuman) {
 
 export default function Demo() {
   const [airport, setAirport] = useState(15);
-  const [target, setTarget] = useState(19);
+  const [target, setTarget] = useState(-1); // -1 : au hasard, comme en partie
   const [hijack, setHijack] = useState(null);
   const [arrestFrom, setArrestFrom] = useState(30);
   const [arrest, setArrest] = useState(null);
@@ -138,10 +138,11 @@ export default function Demo() {
   const fight = useLocalFight(!!fightMode, fightMode === 'human');
 
   const hijackState = useMemo(() => makeDemoState(hijack?.cell), [hijack?.id]);
-  const victim = hijackState.props[target]?.owner;
 
   function playHijack() {
-    setHijack({ id: Date.now(), type: 'hijack', pid: 'me', victim: victim === 'me' ? 'tokyo' : victim, from: airport, cell: target, houses: DEMO_HOUSES[target] });
+    const cell = target >= 0 ? target : CITIES[Math.floor(Math.random() * CITIES.length)].index;
+    const victim = makeDemoState(null).props[cell]?.owner;
+    setHijack({ id: Date.now(), type: 'hijack', pid: 'me', victim: victim === 'me' ? 'tokyo' : victim, from: airport, cell, houses: DEMO_HOUSES[cell] });
   }
 
   function nextBanner() {
@@ -195,6 +196,7 @@ export default function Demo() {
           </label>
           <label className="demo-field">Ville visée
             <select value={target} onChange={(e) => setTarget(+e.target.value)}>
+              <option value={-1}>🎲 Au hasard (comme en partie)</option>
               {CITIES.map((c) => <option key={c.index} value={c.index}>{c.name} — {DEMO_HOUSES[c.index] === 5 ? 'hôtel' : `${DEMO_HOUSES[c.index]} maison${DEMO_HOUSES[c.index] > 1 ? 's' : ''}`}</option>)}
             </select>
           </label>

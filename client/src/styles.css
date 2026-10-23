@@ -568,3 +568,5 @@ small { color: var(--muted); }
 .sound-toggle { display: inline-flex; align-items: center; gap: 6px; }
 .sound-toggle input[type=range] { width: 74px; padding: 0; accent-color: var(--accent); background: transparent; border: none; }
 .sound-toggle .muted-btn { opacity: .7; }
+.cinematic-caption.reveal { border-color: #ef4444; animation: caption-pop .4s ease-out; }
+@keyframes caption-pop { from { transform: translateX(-50%) scale(1.25); } }

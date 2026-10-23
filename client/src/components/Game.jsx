@@ -115,7 +115,6 @@ export default function Game({ state, me, onLeave }) {
 
   const highlights = {};
   const pend = animating ? null : state.turn?.pending;
-  if (pend?.type === 'hijack') highlights[pend.target] = 'target';
   if (pend?.type === 'buy') highlights[pend.cell] = 'focus';
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';

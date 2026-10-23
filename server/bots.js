@@ -121,8 +121,7 @@ export function botStep(game) {
       || tryAct(game, p, { type: 'decline' });
   }
   if (pend?.type === 'hijack') {
-    // vise surtout les hôtels et les grosses constructions
-    return tryAct(game, p, { type: 'hijack', accept: p.money - pend.cost > 300 && (pend.houses >= 3 || Math.random() < 0.4) });
+    return tryAct(game, p, { type: 'hijack', accept: p.money - pend.cost > 300 && Math.random() < 0.6 });
   }
   if (pend?.type === 'casino') {
     // tente sa chance une ou deux fois avec une petite mise quand il est à l'aise

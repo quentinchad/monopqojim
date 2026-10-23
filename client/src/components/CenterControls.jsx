@@ -139,14 +139,11 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
           onSpin={(bet) => act('casinoSpin', { bet })} onLeave={() => act('casinoLeave')} />
       );
     } else if (pend?.type === 'hijack') {
-      const target = BOARD[pend.target];
-      const what = pend.houses === 5 ? '🏨 l’hôtel' : pend.houses === 1 ? '🏠 la maison' : `${'🏠'.repeat(pend.houses)} les ${pend.houses} maisons`;
-      const victim = playerById(state, state.props[pend.target].owner);
       body = (
         <div className="decision hijack">
           <div className="hijack-title">✈️ Détournement d’avion</div>
-          <div>Détourner un avion depuis <b>{BOARD[pend.from].name}</b> pour détruire {what} de <b style={{ color: victim?.color }}>{victim?.name}</b> à <b>{target.name}</b> ?</div>
-          <small>Cible tirée au hasard parmi les villes adverses construites.</small>
+          <div>Détourner un avion depuis <b>{BOARD[pend.from].name}</b> ?</div>
+          <small>Il s’écrasera sur une ville adverse construite tirée au hasard : maisons ou hôtel, vous le découvrirez en direct !</small>
           <div className="row">
             <button className="btn danger" disabled={meP.money < pend.cost} onClick={() => act('hijack', { accept: true })}>💥 Détourner ({money(pend.cost)})</button>
             <button className="btn" onClick={() => act('hijack', { accept: false })}>Non merci</button>

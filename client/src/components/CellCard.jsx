@@ -1,5 +1,5 @@
 import React from 'react';
-import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS, RULES, CASINO, housePrice, hijackCost, resaleValue } from '../../../shared/board.js';
+import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS, RULES, CASINO, housePrice, resaleValue } from '../../../shared/board.js';
 import { act } from '../net.js';
 import { money, playerById, ownsCountry, groupHasBuildings } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
@@ -65,11 +65,10 @@ export default function CellCard({ state, me, index, onClose }) {
             <div className="cc-info">
               <span>🏠 Maison : {money(housePrice(cell))}</span>
               <span>🏨 Hôtel : {money(housePrice(cell))} + 4 maisons</span>
-              <span>✈️ Détournement : {money(hijackCost(cell, 1))} par maison, {money(hijackCost(cell, 5))} pour l’hôtel</span>
             </div>
           )}
           {cell.type === 'airport' && (
-            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour détruire les bâtiments (maisons ou hôtel) d’une ville adverse tirée au hasard, pour la moitié de leur prix de construction.</p>
+            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour {money(RULES.HIJACK_PRICE)} : il s’écrase sur une ville adverse construite tirée au hasard et en détruit les maisons ou l’hôtel.</p>
           )}
           {cell.price && (
             <div className="cc-info">

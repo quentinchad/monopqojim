@@ -533,7 +533,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     w.cine = createHijackCinematic({
       scene: w.scene, camera: w.camera, cells: w.cells,
       from: cinematic.from, cell: cinematic.cell, color: cinematic.color,
-      onImpact: () => { w.cineHotel = null; w.refresh?.(); },
+      onImpact: () => { w.cineHotel = null; w.refresh?.(); cineCueRef.current?.('impact'); },
     });
   }, [cinematic?.key]);
 

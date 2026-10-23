@@ -47,7 +47,7 @@ export default function Home({ initialRoom, onEnter }) {
       </div>
       <div className="row"><ThemePicker /><SoundToggle /></div>
       <div className="home-rules">
-        <div><b>✈️ Aéroports</b> Détournez un avion pour raser les maisons ou l’hôtel d’une ville adverse.</div>
+        <div><b>✈️ Aéroports</b> Détournez un avion : il s’écrase au hasard sur une ville adverse.</div>
         <div><b>💊 Trafic</b> Bonus au passage par Départ… ou peine de prison doublée.</div>
         <div><b>⛓️ Goulag</b> Éliminé ? Battez-vous en duel pour revenir en jeu.</div>
         <div><b>🔀 Échange forcé</b> Une carte Chance qui échange vos villes au hasard.</div>

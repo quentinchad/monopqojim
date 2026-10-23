@@ -97,9 +97,9 @@ console.log('parties', games, stats);
   console.log('casino / revente / négociation OK');
 }
 
-// Détournement : cible aléatoire parmi les villes adverses construites, coût selon les bâtiments
+// Détournement : prix fixe, cible tirée au hasard au paiement parmi les villes adverses construites
 {
-  const { hijackCost } = await import('../shared/board.js');
+  const { RULES } = await import('../shared/board.js');
   const assert = (c, m) => { if (!c) throw new Error(m); };
   const seen = new Set();
   for (let k = 0; k < 60; k++) {
@@ -117,12 +117,13 @@ console.log('parties', games, stats);
     game.handle(cur.id, { type: 'roll' });
     if (game.turn.pending?.type === 'buy') game.handle(cur.id, { type: 'decline' });
     const pend = game.turn.pending;
-    assert(pend?.type === 'hijack' && [1, 39].includes(pend.target), 'cible adverse');
-    assert(pend.cost === hijackCost(BOARD[pend.target], pend.houses), 'coût');
-    seen.add(pend.target);
+    assert(pend?.type === 'hijack' && pend.target === undefined && pend.cost === RULES.HIJACK_PRICE, 'offre sans cible');
     const money = cur.money;
     game.handle(cur.id, { type: 'hijack', accept: true });
-    assert(game.props[pend.target].houses === 0 && cur.money === money - pend.cost, 'destruction');
+    const ev = game.events.find((e) => e.type === 'hijack');
+    assert([1, 39].includes(ev.cell) && game.props[ev.cell].houses === 0 && cur.money === money - RULES.HIJACK_PRICE, 'destruction');
+    assert(game.props[37].houses === 3, 'sa ville épargnée');
+    seen.add(ev.cell);
     game.destroy();
   }
   assert(seen.size === 2, 'tirage aléatoire');

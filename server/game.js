@@ -1,6 +1,6 @@
 import {
   BOARD, RULES, CASINO, COUNTRIES, COUNTRY_CELLS, OWNABLE, AIRPORT_RENTS, PLAYER_COLORS,
-  housePrice, hijackCost, casinoPayout, resaleValue,
+  housePrice, casinoPayout, resaleValue,
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
@@ -615,12 +615,10 @@ export class Game {
     return targets.length ? targets[Math.floor(Math.random() * targets.length)].index : null;
   }
 
+  // Proposé seulement s'il existe une cible ; la ville n'est tirée qu'au moment du paiement
   offerHijack(p, airportIndex) {
-    const target = this.hijackTarget(p);
-    if (target == null) return;
-    const houses = this.props[target].houses;
-    const cost = hijackCost(BOARD[target], houses);
-    this.turn.pending = { type: 'hijack', from: airportIndex, target, houses, cost };
+    if (this.hijackTarget(p) == null) return;
+    this.turn.pending = { type: 'hijack', from: airportIndex, cost: RULES.HIJACK_PRICE };
   }
 
   actHijack(p, accept) {
@@ -629,27 +627,29 @@ export class Game {
     if (pend?.type !== 'hijack') fail('Aucun détournement possible');
     if (accept) {
       if (p.money < pend.cost) fail('Pas assez d’argent pour détourner l’avion');
-      const prop = this.props[pend.target];
-      if (prop.houses !== pend.houses || !prop.owner || prop.owner === p.id) {
-        // les bâtiments visés ont changé entre-temps : nouvelle cible (ou plus de détournement possible)
-        this.addLog(`✈️ La cible du détournement a changé`, p.id);
-        this.turn.pending = null;
-        this.offerHijack(p, pend.from);
-        this.updatePhase();
-        return;
-      }
+      const target = this.hijackTarget(p);
+      if (target == null) fail('Plus aucune ville adverse construite');
+      const prop = this.props[target];
+      const houses = prop.houses;
       const victim = this.player(prop.owner);
       p.money -= pend.cost;
       prop.houses = 0;
       this.st(p).hijacks++;
       this.st(victim).hotelsLost++;
-      const cell = BOARD[pend.target];
-      const what = buildingsLabel(pend.houses);
-      this.addLog(`✈️💥 ${p.name} détourne un avion depuis ${BOARD[pend.from].name} et détruit ${what} de ${victim.name} à ${cell.name} (${pend.cost} $)`, p.id);
+      const cell = BOARD[target];
+      const what = buildingsLabel(houses);
+      this.addLog(`✈️ ${p.name} paie ${pend.cost} $ et détourne un avion depuis ${BOARD[pend.from].name}… où va-t-il s’écraser ?`, p.id);
       this.addEvent('hijack', {
-        pid: p.id, victim: victim.id, from: pend.from, cell: pend.target, houses: pend.houses,
+        pid: p.id, victim: victim.id, from: pend.from, cell: target, houses,
         text: `✈️💥 ${p.name} a détruit ${what} de ${victim.name} à ${cell.name} !`,
       });
+      // la cible n'apparaît dans le journal qu'après l'impact, pour ne pas gâcher la surprise
+      const reveal = `💥 L’avion s’écrase sur ${cell.name} : ${what} de ${victim.name} ${houses === 1 || houses === 5 ? 'est détruit' + (houses === 1 ? 'e' : '') : 'sont détruites'}`;
+      setTimeout(() => {
+        if (this.phase === 'lobby') return;
+        this.addLog(reveal, victim.id);
+        this.changed();
+      }, 9000);
       // laisse le temps à la cinématique de se jouer chez tout le monde avant que les bots enchaînent
       this.animUntil = Date.now() + 9500;
     } else {
