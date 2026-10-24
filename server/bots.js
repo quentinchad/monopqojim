@@ -1,17 +1,11 @@
 // IA simple pour les bots (et pour les joueurs déconnectés depuis trop longtemps).
 import { BOARD, COUNTRY_CELLS, housePrice } from '../shared/board.js';
 
-// Un joueur humain déconnecté depuis ce délai est joué par un « pilote automatique prudent »
-// (il lance les dés et finit son tour, sans rien acheter ni décider à sa place) en attendant
-// son retour ou son abandon.
-export const AUTOPILOT_DELAY = 8000;
-
+// Un joueur humain déconnecté n'est PAS remplacé pendant le décompte (la partie l'attend) ;
+// une fois le décompte écoulé, un bot joue à sa place jusqu'à son retour.
 export function isAI(game, p) {
-  if (p.isBot) return true;
-  return !p.connected && p.disconnectedAt && Date.now() - p.disconnectedAt > AUTOPILOT_DELAY;
+  return p.isBot || (p.botControlled && !p.connected);
 }
-
-const isCautious = (p) => !p.isBot;
 
 const owned = (game, p) => Object.keys(game.props).map(Number).filter((i) => game.props[i].owner === p.id);
 
@@ -94,7 +88,7 @@ export function botStep(game) {
   const a = game.auction;
   if (a) {
     for (const p of bots) {
-      if (a.bidder === p.id || isCautious(p)) continue;
+      if (a.bidder === p.id) continue;
       const max = Math.min(valueFor(game, p, a.cell) * (0.85 + Math.random() * 0.3), p.money - 150);
       const next = a.bid + (a.bid < 100 ? 10 : 20);
       if (next <= max) return tryAct(game, p, { type: 'bid', amount: next });
@@ -106,13 +100,6 @@ export function botStep(game) {
   if (!p || !isAI(game, p)) return false;
   const t = game.turn;
   const pend = t.pending;
-  if (isCautious(p)) {
-    if (pend?.type === 'buy') return tryAct(game, p, { type: 'decline' });
-    if (pend?.type === 'hijack') return tryAct(game, p, { type: 'hijack', accept: false });
-    if (pend?.type === 'casino') return tryAct(game, p, { type: 'casinoLeave' });
-    if (pend?.type === 'card') return tryAct(game, p, { type: 'cardOk' });
-    return tryAct(game, p, { type: t.phase === 'roll' ? 'roll' : 'endTurn' });
-  }
   if (pend?.type === 'buy') {
     const cell = BOARD[pend.cell];
     const v = valueFor(game, p, pend.cell);

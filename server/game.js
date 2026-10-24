@@ -91,7 +91,7 @@ export class Game {
     const used = new Set(this.players.map((p) => p.color));
     const color = PLAYER_COLORS.find((c) => !used.has(c));
     const p = {
-      id: uid(), token, isBot, connected: true, disconnectedAt: null, abandonAt: null, announcedDisconnect: false,
+      id: uid(), token, isBot, connected: true, disconnectedAt: null, abandonAt: null, announcedDisconnect: false, botControlled: false,
       name: String(name || 'Joueur').trim().slice(0, 20) || 'Joueur',
       color, money: 0, pos: 0,
       jail: { in: false, turns: 0, heavy: false },
@@ -1065,15 +1065,33 @@ export class Game {
   markDisconnected(p) {
     p.connected = false;
     p.disconnectedAt = Date.now();
-    if (this.phase === 'playing' && !p.isBot && p.status !== 'eliminated') {
+    if (this.phase === 'playing' && !p.isBot && p.status !== 'eliminated' && !p.botControlled) {
       p.abandonAt = Date.now() + this.settings.abandonDelay * 1000;
     }
+  }
+
+  // Joueur qui revient : par son jeton, ou à défaut par son pseudo s'il a changé d'appareil / d'onglet
+  // (seulement une place humaine actuellement déconnectée)
+  findReturning(token, name) {
+    if (token) {
+      const p = this.players.find((x) => x.token && x.token === token);
+      if (p) return p;
+    }
+    const n = String(name || '').trim().toLowerCase();
+    if (!n) return null;
+    const p = this.players.find((x) => !x.isBot && !x.connected && x.name.trim().toLowerCase() === n);
+    if (p && token) p.token = token;
+    return p || null;
   }
 
   markReconnected(p) {
     p.connected = true;
     p.disconnectedAt = null;
-    if (p.abandonAt && p.announcedDisconnect) {
+    if (p.botControlled) {
+      p.botControlled = false;
+      this.addLog(`🔌 ${p.name} est de retour et reprend la main sur le bot`, p.id);
+      this.addEvent('reconnect', { pid: p.id, text: `🔌 ${p.name} est de retour et reprend la main !` });
+    } else if (p.abandonAt && p.announcedDisconnect) {
       this.addLog(`🔌 ${p.name} est de retour !`, p.id);
       this.addEvent('reconnect', { pid: p.id, text: `🔌 ${p.name} est de retour !` });
     }
@@ -1102,31 +1120,24 @@ export class Game {
       if (!p.announcedDisconnect && now - p.disconnectedAt > 5000) {
         p.announcedDisconnect = true;
         const min = Math.ceil((p.abandonAt - now) / 60000);
-        this.addLog(`📴 ${p.name} s’est déconnecté. Abandon automatique dans ${min} min s’il ne revient pas.`, p.id);
+        this.addLog(`📴 ${p.name} s’est déconnecté. La partie l’attend ${min} min, puis un bot jouera à sa place jusqu’à son retour.`, p.id);
         this.addEvent('disconnect', { pid: p.id, text: `📴 ${p.name} s’est déconnecté` });
         changed = true;
       }
-      // un joueur en plein combat du goulag est contrôlé par l'IA jusqu'à la fin du duel
-      if (now >= p.abandonAt && !this.fight?.ids.includes(p.id)) {
-        this.abandon(p);
+      // décompte écoulé : un bot prend sa place (il garde ses biens et peut reprendre la main en revenant)
+      if (now >= p.abandonAt) {
+        this.botTakeover(p);
         changed = true;
       }
     }
     if (changed) this.changed();
   }
 
-  abandon(p) {
+  botTakeover(p) {
     p.abandonAt = null;
-    this.addLog(`🚪 ${p.name} n’est pas revenu et abandonne la partie`, p.id);
-    this.addEvent('bankrupt', { pid: p.id, text: `🚪 ${p.name} abandonne la partie` });
-    if (p.status === 'alive') {
-      // un abandon ne donne pas droit au goulag ; ses biens reviennent à la banque
-      p.usedGoulag = true;
-      p.debtCreditor = null;
-      this.bankrupt(p);
-    } else if (p.status === 'goulag') {
-      p.status = 'eliminated';
-    }
+    p.botControlled = true;
+    this.addLog(`🤖 ${p.name} n’est pas revenu : un bot joue à sa place jusqu’à son retour`, p.id);
+    this.addEvent('disconnect', { pid: p.id, text: `🤖 Un bot remplace ${p.name} jusqu’à son retour` });
   }
 
   // ---------- état public ----------

@@ -3,14 +3,25 @@ import { sfx } from './sound.js';
 
 export const socket = io({ autoConnect: true, transports: ['websocket', 'polling'] });
 
-// Jeton secret par onglet : permet de se reconnecter après un rafraîchissement
-export function getToken() {
-  let t = sessionStorage.getItem('mq_token');
-  if (!t) {
-    t = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-    sessionStorage.setItem('mq_token', t);
+// Jeton secret qui identifie le joueur dans une partie. Mémorisé par partie dans l'onglet (rafraîchissement)
+// ET dans le navigateur (onglet fermé puis rouvert, retour le lendemain…), pour toujours retrouver sa place.
+const newToken = () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+const readMap = (store) => { try { return JSON.parse(store.getItem('mq_tokens') || '{}'); } catch { return {}; } };
+const saveToken = (roomId, token) => {
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      const m = readMap(store);
+      m[roomId] = token;
+      // garde seulement les 20 dernières parties
+      const keys = Object.keys(m);
+      for (const k of keys.slice(0, Math.max(0, keys.length - 20))) delete m[k];
+      store.setItem('mq_tokens', JSON.stringify(m));
+    } catch { /* stockage indisponible */ }
   }
-  return t;
+};
+function tokenFor(roomId) {
+  if (!roomId) return newToken();
+  return readMap(sessionStorage)[roomId] || readMap(localStorage)[roomId] || newToken();
 }
 
 let toastHandler = () => {};
@@ -29,7 +40,12 @@ function emit(event, payload) {
 
 export const act = (type, data = {}) => emit('action', { type, ...data });
 export const lobby = (op, data = {}) => emit('lobby', { op, ...data });
-export const join = (roomId, name) => emit('join', { roomId, name, token: getToken() });
+export async function join(roomId, name) {
+  const token = tokenFor(roomId && String(roomId).toUpperCase());
+  const res = await emit('join', { roomId, name, token });
+  if (res.roomId && res.playerId) saveToken(res.roomId, token);
+  return res;
+}
 
 // accès console pour le débogage (le serveur n'accepte les commandes debug qu'avec --debug)
 window.__mqSocket = socket;

@@ -23,7 +23,8 @@ export function PlayersPanel({ state, me, onTrade }) {
                 {p.jailCards.length > 0 && <span title="Carte libéré de prison"> 🎫</span>}
                 {p.status === 'goulag' && <span title="Au goulag"> ⛓️</span>}
                 {p.status === 'eliminated' && <span title="Éliminé"> 💀</span>}
-                {!p.connected && !p.isBot && <span title={p.abandonIn != null ? 'Déconnecté : abandon automatique s’il ne revient pas' : 'Déconnecté'}> 📴</span>}
+                {!p.connected && !p.isBot && !p.botControlled && <span title={p.abandonIn != null ? 'Déconnecté : un bot le remplacera à la fin du décompte' : 'Déconnecté'}> 📴</span>}
+                {p.botControlled && !p.connected && <span title="Déconnecté : un bot joue à sa place jusqu’à son retour"> 🤖</span>}
               </div>
               <div className="owned-dots">
                 {owned.map((i) => (

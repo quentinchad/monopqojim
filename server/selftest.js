@@ -150,3 +150,29 @@ console.log('parties', games, stats);
   game.destroy();
   console.log('cartes validées par le joueur OK');
 }
+
+// Déconnexion : la partie attend pendant le décompte, puis un bot prend la place ; retour par jeton ou pseudo
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('D');
+  const a = game.addPlayer({ name: 'Alice', token: 'ta' });
+  const b = game.addPlayer({ name: 'Bob', token: 'tb' });
+  game.start(a.id);
+  const away = game.current;
+  game.markDisconnected(away);
+  away.disconnectedAt -= 60000; // déconnecté depuis longtemps, mais décompte pas fini
+  assert(!botStep(game), 'personne ne joue pendant le décompte');
+  away.abandonAt = Date.now() - 1;
+  game.checkDisconnections(3000, true);
+  assert(away.botControlled && away.status === 'alive', 'bot à la fin du décompte');
+  assert(botStep(game), 'le bot joue à sa place');
+  // retour depuis un autre appareil : nouveau jeton, même pseudo
+  const back = game.findReturning('nouveau', away.name.toUpperCase());
+  assert(back === away && away.token === 'nouveau', 'reprise par pseudo');
+  game.markReconnected(back);
+  assert(!away.botControlled && away.connected, 'reprend la main');
+  assert(game.findReturning('inconnu', 'Bob') === null, 'pas de vol de place d’un joueur connecté');
+  game.destroy();
+  void b;
+  console.log('déconnexion / bot / retour OK');
+}

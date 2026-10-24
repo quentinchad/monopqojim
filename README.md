@@ -65,7 +65,7 @@ Un joueur en faillite part au goulag (**une seule fois par partie**). Dès qu’
 Une ville du joueur et une ville d’un adversaire sont tirées au hasard et échangées (parmi les propriétés dont le pays n’a pas de bâtiments).
 
 ### Le reste
-**Déconnexions** : un joueur qui se déconnecte est joué par un pilote automatique prudent (il lance les dés et finit son tour, sans rien acheter). Un décompte (2 min par défaut, réglable dans le salon) s’affiche chez les autres joueurs, qui peuvent lui accorder +1 min. S’il revient avant la fin, il reprend la main ; sinon il abandonne (ses biens reviennent à la banque, sans goulag).
+**Déconnexions** : quand un joueur se déconnecte, la partie **l’attend** pendant un décompte (2 min par défaut, réglable dans le salon) affiché chez les autres joueurs, qui peuvent lui accorder +1 min ; personne ne joue à sa place pendant ce temps. À la fin du décompte, **un bot prend sa place** (il garde ses biens et joue comme les autres bots). Dès qu’il revient, le joueur reprend la main, même après le remplacement. Pour retrouver sa place, il suffit de rouvrir le lien de la partie : le navigateur mémorise un jeton par partie (même après avoir fermé l’onglet) ; depuis un autre appareil, rejoindre avec **le même pseudo** reprend la place d’un joueur déconnecté. Seul un duel du goulag ne peut pas attendre : un joueur déconnecté y est joué par l’IA.
 
 **Thèmes visuels** : 5 thèmes au choix (🌃 Nuit violette, 🌳 Classique jour, 🌊 Océan, 🌆 Néon, 🏜️ Désert), sélectionnables à tout moment. Chacun change les couleurs de l’interface et du plateau, et en 3D / FPS le ciel, la lumière et le décor autour du plateau (ville illuminée, parc arboré, île tropicale avec bateaux, ville néon, désert avec pyramides). Le choix est propre à chaque joueur.
 

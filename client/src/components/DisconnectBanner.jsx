@@ -7,7 +7,7 @@ const fmt = (ms) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-// Décompte avant abandon des joueurs déconnectés, avec bouton pour leur laisser plus de temps
+// Décompte avant qu'un bot remplace un joueur déconnecté, avec bouton pour lui laisser plus de temps
 export default function DisconnectBanner({ state, me }) {
   const away = state.players.filter((p) => p.abandonIn != null && p.announcedDisconnect);
   const deadlines = useRef({});
@@ -34,7 +34,7 @@ export default function DisconnectBanner({ state, me }) {
       {away.map((p) => (
         <div key={p.id} className="dc-row">
           <span className="dot" style={{ background: p.color }} />
-          <span><b>{p.name}</b> est déconnecté · abandon dans <b className="dc-time">{fmt((deadlines.current[p.id] ?? Date.now() + p.abandonIn) - Date.now())}</b></span>
+          <span><b>{p.name}</b> est déconnecté · la partie l’attend, un bot le remplace dans <b className="dc-time">{fmt((deadlines.current[p.id] ?? Date.now() + p.abandonIn) - Date.now())}</b></span>
           {canExtend && p.id !== me && (
             <button className="btn tiny" onClick={() => act('extendTimeout', { playerId: p.id })}>+1 min</button>
           )}

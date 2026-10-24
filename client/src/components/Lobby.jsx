@@ -81,7 +81,7 @@ export default function Lobby({ state, me, onLeave }) {
                 {[500, 750, 1000, 1500].map((v) => <option key={v} value={v}>{v} $</option>)}
               </select>
             </label>
-            <label>Délai avant abandon d’un joueur déconnecté
+            <label>Attente d’un joueur déconnecté avant qu’un bot le remplace
               <select disabled={!isHost} value={s.abandonDelay} onChange={(e) => set({ abandonDelay: +e.target.value })}>
                 {[60, 120, 300, 600].map((v) => <option key={v} value={v}>{v / 60} min</option>)}
               </select>

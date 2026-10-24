@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
       if (roomId && !game) return ack?.({ error: 'Partie introuvable' });
       if (!game) game = createGame();
       if (socket.data.roomId) socket.leave(socket.data.roomId);
-      let p = token && game.players.find((x) => x.token === token);
+      let p = game.findReturning(token, name);
       if (p) {
         game.markReconnected(p);
       } else if (game.phase === 'lobby') {
@@ -172,7 +172,7 @@ io.on('connection', (socket) => {
       .some((sid) => io.sockets.sockets.get(sid)?.data.playerId === pid);
     if (!p || stillHere) return;
     if (game.phase === 'lobby') {
-      // dans le salon, un joueur qui part libère sa place (sauf s'il revient vite)
+      // dans le salon, un joueur qui part libère sa place (sauf s'il revient dans la minute)
       p.connected = false;
       p.disconnectedAt = Date.now();
       setTimeout(() => {
@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
           if (game.hostId === pid) game.hostId = game.players.find((x) => !x.isBot)?.id || null;
           game.changed();
         }
-      }, 15000);
+      }, 60000);
     } else {
       game.markDisconnected(p);
     }
