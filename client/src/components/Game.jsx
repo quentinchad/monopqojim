@@ -14,7 +14,8 @@ import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { BUSTED_DURATION } from '../busted.js';
 import { PlayersPanel, TradesPanel, MyProperties, LogChat } from './Panels.jsx';
-import { useAnimatedPositions, useElementSize } from '../hooks.js';
+import { useAnimatedPositions, useElementSize, useDisplayedPlayers, useHoldAfterChange } from '../hooks.js';
+import { SLOT_DURATION } from './SlotMachine.jsx';
 import { playerById } from '../gameInfo.js';
 import { toast, act } from '../net.js';
 import { inviteLink } from '../embed.js';
@@ -66,7 +67,9 @@ function useEventQueue(events, paused) {
     return () => clearTimeout(to);
   }, [activeId]);
   const current = head && head.id === activeId ? head : null;
-  return [current, () => current && remove(current.id)];
+  // une cinématique attend son tour : l'argent affiché reste gelé jusqu'à ce qu'elle se joue
+  const cinematicQueued = queue.some((e) => CINEMATICS.includes(e.type));
+  return [current, () => current && remove(current.id), cinematicQueued];
 }
 
 export function EventBanner({ event, state, onClose }) {
@@ -99,8 +102,7 @@ export default function Game({ state, me, onLeave }) {
   const boardWrap = useRef(null);
   const { w, h } = useElementSize(boardWrap);
   const [positions, animating] = useAnimatedPositions(state.players);
-  const [event, nextEvent] = useEventQueue(state.events, animating);
-  useGameSounds(state, me, event);
+  const [event, nextEvent, cinematicQueued] = useEventQueue(state.events, animating);
   const size = Math.max(320, Math.min(w, h) - 16);
 
   useEffect(() => { localStorage.setItem('mq_view', view); }, [view]);
@@ -123,6 +125,12 @@ export default function Game({ state, me, onLeave }) {
   // la carte que je dois valider est déjà affichée au centre, avec son bouton
   const myCard = event?.type === 'card' && event.pid === me && state.turn?.pending?.type === 'card';
   const bannerEvent = cinematic || myCard ? null : event;
+
+  // l'argent des joueurs n'est mis à jour qu'une fois l'action visible à l'écran
+  const casinoSpinning = useHoldAfterChange(state.turn?.pending?.last?.id, SLOT_DURATION * 1000);
+  const shownPlayers = useDisplayedPlayers(state.players, animating || cinematicQueued || casinoSpinning);
+  const shownState = { ...state, players: shownPlayers };
+  useGameSounds(state, me, event, shownPlayers);
 
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(inviteLink(state.id)); toast('Lien copié !', 'info'); } catch { /* ignore */ }
@@ -173,7 +181,7 @@ export default function Game({ state, me, onLeave }) {
       </main>
 
       <aside className="side right">
-        <PlayersPanel state={state} me={me} onTrade={(id) => setTrade(id)} />
+        <PlayersPanel state={shownState} me={me} onTrade={(id) => setTrade(id)} />
         {playerById(state, me)?.status === 'alive' && state.phase === 'playing' && (
           <button className="btn wide" onClick={() => setTrade(true)}>🤝 Proposer un échange</button>
         )}

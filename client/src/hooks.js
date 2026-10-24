@@ -62,6 +62,29 @@ export function useAnimatedPositions(players) {
   return [disp, animating];
 }
 
+// Argent et patrimoine affichés : gelés tant que `hold` est vrai (pions en mouvement, rouleaux du casino,
+// cinématique…), pour ne pas dévoiler un loyer, un gain ou une perte avant que l'action ne soit visible.
+export function useDisplayedPlayers(players, hold) {
+  const snap = () => Object.fromEntries(players.map((p) => [p.id, { money: p.money, netWorth: p.netWorth }]));
+  const [shown, setShown] = useState(snap);
+  const sig = players.map((p) => `${p.id}:${p.money}:${p.netWorth}`).join('|');
+  useEffect(() => { if (!hold) setShown(snap()); }, [hold, sig]);
+  return players.map((p) => (shown[p.id] ? { ...p, ...shown[p.id] } : p));
+}
+
+// Vrai pendant `ms` millisecondes après chaque changement de `key` (sauf la valeur initiale)
+export function useHoldAfterChange(key, ms) {
+  const first = useRef(key);
+  const [holding, setHolding] = useState(false);
+  useEffect(() => {
+    if (key == null || key === first.current) return;
+    setHolding(true);
+    const to = setTimeout(() => setHolding(false), ms);
+    return () => clearTimeout(to);
+  }, [key]);
+  return holding;
+}
+
 export function useElementSize(ref) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   useEffect(() => {

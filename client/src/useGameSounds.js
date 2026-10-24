@@ -4,8 +4,10 @@ import { sfx, eventSound } from './sound.js';
 
 const CINEMATICS = ['busted', 'hijack', 'delivery'];
 
-export function useGameSounds(state, me, event) {
+// shownPlayers : joueurs tels qu'affichés (argent gelé pendant les animations), pour caler le son des pièces
+export function useGameSounds(state, me, event, shownPlayers = state.players) {
   const prev = useRef(null);
+  const ownSoundAt = useRef(0); // achat / revente : leur propre son remplace celui des pièces
 
   useEffect(() => {
     const p = prev.current;
@@ -31,20 +33,24 @@ export function useGameSounds(state, me, event) {
     if (bought) sfx.buy();
     else if (built) sfx.build();
     else if (sold || released === 1) sfx.sell();
-
-    // mon argent (le casino a ses propres sons, révélés à l'arrêt des rouleaux)
-    const casino = state.turn?.pending?.type === 'casino' || p.turn?.pending?.type === 'casino';
-    const before = p.players.find((x) => x.id === me)?.money;
-    const after = state.players.find((x) => x.id === me)?.money;
-    if (!casino && before != null && after != null && after !== before && !(bought === me) && !sold && released !== 1) {
-      if (after > before) sfx.coin();
-      else sfx.pay();
-    }
+    if (bought === me || built || sold || released === 1) ownSoundAt.current = Date.now();
 
     // enchères
     if (state.auction && state.auction.bid > (p.auction?.bid || 0)) sfx.bid();
     if (p.auction && !state.auction) sfx.gavel();
   }, [state.version]);
+
+  // mon argent, au moment où il change à l'écran (le casino et les achats ont leurs propres sons)
+  const myMoney = shownPlayers.find((x) => x.id === me)?.money;
+  const prevMoney = useRef(myMoney);
+  useEffect(() => {
+    const before = prevMoney.current;
+    prevMoney.current = myMoney;
+    if (before == null || myMoney == null || myMoney === before) return;
+    if (state.turn?.pending?.type === 'casino' || Date.now() - ownSoundAt.current < 1500) return;
+    if (myMoney > before) sfx.coin();
+    else sfx.pay();
+  }, [myMoney]);
 
   // annonces (les cinématiques ont leur propre bande-son)
   useEffect(() => {
