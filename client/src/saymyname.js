@@ -5,12 +5,12 @@ import * as THREE from 'three';
 
 export const SAY_MY_NAME_DURATION = 18; // secondes
 
-// Répliques (sous-titres) : qui parle et quand
+// Répliques (sous-titres, en anglais comme dans la série) : qui parle et quand
 export const LINES = [
-  { from: 3.6, to: 5.6, who: 'player', text: 'T’es qui, toi ?' },
-  { from: 6.6, to: 8.8, who: 'walt', text: 'Dis mon nom.' },
+  { from: 3.6, to: 5.6, who: 'player', text: 'Who the hell are you?' },
+  { from: 6.6, to: 8.8, who: 'walt', text: 'Say my name.' },
   { from: 10.3, to: 11.9, who: 'player', text: '… Heisenberg.' },
-  { from: 12.5, to: 14.6, who: 'walt', text: 'T’as foutrement raison.' },
+  { from: 12.5, to: 14.6, who: 'walt', text: 'You’re goddamn right.' },
 ];
 export const T_TITLE = 15.2;
 
