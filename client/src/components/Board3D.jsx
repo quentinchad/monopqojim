@@ -9,6 +9,7 @@ import { createHijackCinematic } from '../cinematic.js';
 import { createBustedCinematic } from '../busted.js';
 import { THEMES, useThemeId } from '../themes.js';
 import { buildScenery } from '../scenery.js';
+import { makeSkinModel, skinSources } from '../skin3d.js';
 
 const HALF = TOTAL / 2;
 const CELL_H = 0.14;
@@ -156,6 +157,29 @@ function drawCenter(ctx, S, pal) {
   ctx.fillText('QOJIM', S / 2 + 175, S / 2 + 140);
 }
 
+// Pion d'un joueur : son pion personnalisé s'il en a un, sinon le pion classique à sa couleur
+function makeToken(state, p) {
+  if (!p.skin) return makePawn(p.color);
+  const g = new THREE.Group();
+  const model = makeSkinModel({ skin: p.skin, ...skinSources(state.id, p), color: p.color });
+  model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  g.add(model);
+  addRing(g);
+  return g;
+}
+
+function addRing(g) {
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.26, 0.33, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.01;
+  ring.visible = false;
+  g.add(ring);
+  g.userData.ring = ring;
+}
+
 function makePawn(color) {
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.35, roughness: 0.35 });
@@ -166,15 +190,7 @@ function makePawn(color) {
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 16), mat);
   head.position.y = 0.47;
   for (const m of [base, body, head]) { m.castShadow = true; g.add(m); }
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.26, 0.33, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.01;
-  ring.visible = false;
-  g.add(ring);
-  g.userData.ring = ring;
+  addRing(g);
   return g;
 }
 
@@ -489,13 +505,14 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       list.forEach((p, k) => {
         seen.add(p.id);
         let tok = w.tokens.get(p.id);
-        if (!tok || tok.color !== p.color) {
+        const look = `${p.color}|${p.skin?.v || ''}`;
+        if (!tok || tok.look !== look) {
           if (tok) w.scene.remove(tok.obj);
-          const obj = makePawn(p.color);
+          const obj = makeToken(state, p);
           const c0 = cellCenter(+pos);
           obj.position.set(c0.x - HALF, CELL_H, c0.y - HALF);
           w.scene.add(obj);
-          tok = { obj, color: p.color, target: { x: 0, z: 0 } };
+          tok = { obj, look, target: { x: 0, z: 0 } };
           w.tokens.set(p.id, tok);
         }
         const c = cellCenter(+pos);
@@ -522,7 +539,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     w.cineT = 0;
     if (cinematic.kind === 'busted') {
       w.cine = createBustedCinematic({
-        scene: w.scene, camera: w.camera, from: cinematic.from, color: cinematic.color,
+        scene: w.scene, camera: w.camera, from: cinematic.from, color: cinematic.color, skin: cinematic.skin, src: cinematic.src, faceSrc: cinematic.faceSrc,
         onBusted: () => cineCueRef.current?.('busted'),
       });
       return;

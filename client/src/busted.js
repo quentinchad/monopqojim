@@ -2,6 +2,7 @@
 // puis « BUSTED » façon GTA (le texte et le noir et blanc sont gérés par la page, au signal onBusted).
 import * as THREE from 'three';
 import { cellCenter, TOTAL } from './layout.js';
+import { makeSkinModel } from './skin3d.js';
 
 const HALF = TOTAL / 2;
 const GROUND = 0.14;
@@ -111,7 +112,7 @@ function makePoliceCar() {
   return { g, lights: [[red, pr], [blu, pb]] };
 }
 
-export function createBustedCinematic({ scene, camera, from, color = '#ef4444', onBusted }) {
+export function createBustedCinematic({ scene, camera, from, color = '#ef4444', skin, src, faceSrc, onBusted }) {
   const J = cellWorld(10);
   let S = cellWorld(from);
   // déjà sur la case Prison (trafiquant contrôlé) : la fuite part de l'intérieur du plateau
@@ -124,7 +125,14 @@ export function createBustedCinematic({ scene, camera, from, color = '#ef4444', 
 
   const group = new THREE.Group();
   scene.add(group);
-  const runner = makeRunner(color);
+  // le fugitif : pion personnalisé du joueur s'il en a un
+  let runner;
+  if (skin && (src || skin.type === 'character')) {
+    runner = new THREE.Group();
+    runner.add(makeSkinModel({ skin, src, faceSrc, color }));
+    runner.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    runner.scale.setScalar(1.35);
+  } else runner = makeRunner(color);
   const cop = makeCop();
   const car = makePoliceCar();
   // la voiture arrive depuis la prison et se gare juste après le lieu du plaquage, côté opposé à la caméra

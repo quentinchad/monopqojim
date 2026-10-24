@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { socket } from '../net.js';
 import { playerById } from '../gameInfo.js';
 import { sfx } from '../sound.js';
+import { skinUrl } from '../skin3d.js';
 
 const KEYS = {
   up: ['KeyW', 'KeyZ', 'ArrowUp'],
@@ -86,6 +87,12 @@ export default function FightOverlay({ state, me, source = socketSource, onClose
   useEffect(() => {
     let raf;
     const colors = Object.fromEntries(meta.ids.map((id) => [id, playerById(state, id)?.color || '#fff']));
+    // pions personnalisés : leur image remplit le disque du combattant
+    const faces = {};
+    for (const id of meta.ids) {
+      const url = skinUrl(state.id, playerById(state, id));
+      if (url) { const im = new Image(); im.src = url; im.focus = playerById(state, id).skin.focus; faces[id] = im; }
+    }
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const c = canvasRef.current;
@@ -122,6 +129,20 @@ export default function FightOverlay({ state, me, source = socketSource, onClose
         ctx.arc(f.x, f.y, 18, 0, Math.PI * 2);
         ctx.fillStyle = f.hit ? '#fff' : colors[f.id];
         ctx.fill();
+        const face = faces[f.id];
+        if (face?.complete && face.naturalWidth && !f.hit) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, 15, 0, Math.PI * 2);
+          ctx.clip();
+          const fo = face.focus;
+          const W = face.naturalWidth;
+          if (fo) ctx.drawImage(face, (fo.x - fo.s / 2) * W, (fo.y - fo.s / 2) * W, fo.s * W, fo.s * W, f.x - 15, f.y - 15, 30, 30);
+          else ctx.drawImage(face, f.x - 15, f.y - 15, 30, 30);
+          ctx.restore();
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, 18, 0, Math.PI * 2);
+        }
         ctx.lineWidth = f.dash ? 6 : 3;
         ctx.strokeStyle = f.id === me ? '#fff' : 'rgba(0,0,0,.6)';
         ctx.stroke();

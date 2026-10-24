@@ -4,6 +4,7 @@ import { act, toast } from '../net.js';
 import { money, playerById } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
 import { sfx } from '../sound.js';
+import Avatar from './Avatar.jsx';
 
 // Rouvre la fenêtre d'une proposition reçue (bouton « Voir » du panneau des échanges)
 export const openTradeOffer = (id) => window.dispatchEvent(new CustomEvent('mq-open-trade', { detail: id }));
@@ -77,7 +78,7 @@ export default function TradeOfferModal({ state, me, paused, onCounter }) {
     <div className="modal-backdrop trade-offer-backdrop">
       <div className="trade-offer" style={{ '--from': from?.color }}>
         <div className="to-head">
-          <span className="avatar" style={{ background: from?.color }}>{from?.isBot ? '🤖' : from?.name[0]?.toUpperCase()}</span>
+          <Avatar state={state} p={from} />
           <div>
             <div className="to-kicker">{trade.counter ? '🔁 Contre-proposition' : '🤝 Proposition d’échange'}</div>
             <div className="to-title"><b style={{ color: from?.color }}>{from?.name}</b> vous propose un échange</div>

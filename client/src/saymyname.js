@@ -2,6 +2,7 @@
 // Reprise de la scène de Breaking Bad (saison 5) dans le désert : Heisenberg (pion avec chapeau, lunettes
 // et bouc) face au pion du joueur, voitures et hommes de main autour, champ / contrechamp puis grue finale.
 import * as THREE from 'three';
+import { makeSkinModel } from './skin3d.js';
 
 export const SAY_MY_NAME_DURATION = 18; // secondes
 
@@ -243,7 +244,7 @@ function buildDesert(group) {
   group.add(road);
 }
 
-export function createSayMyName({ container, color = '#ef4444' }) {
+export function createSayMyName({ container, color = '#ef4444', skin, src, faceSrc }) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -274,7 +275,15 @@ export function createSayMyName({ container, color = '#ef4444' }) {
   const walt = makeWalt();
   walt.position.copy(W_POS);
   walt.lookAt(P_POS);
-  const player = makePlayerPawn(color);
+  // face à Heisenberg : le pion personnalisé du joueur s'il en a un
+  let player;
+  if (skin && (src || skin.type === 'character')) {
+    player = new THREE.Group();
+    player.add(makeSkinModel({ skin, src, faceSrc, color }));
+    player.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    player.userData.head = player.children[0].userData.head;
+    player.scale.setScalar(1.4);
+  } else player = makePlayerPawn(color);
   player.position.copy(P_POS);
   player.lookAt(W_POS);
   world.add(walt, player);
@@ -351,15 +360,22 @@ export function createSayMyName({ container, color = '#ef4444' }) {
 
     // bouches qui bougent pendant les répliques
     for (const [who, pawn] of [['walt', walt], ['player', player]]) {
-      const mouth = pawn.userData.head.userData.mouth;
+      const mouth = pawn.userData.head?.userData.mouth;
+      if (!mouth) continue;
       mouth.scale.y = talking(who, t) ? 1 + Math.abs(Math.sin(t * 17)) * 2.6 : 1;
     }
     // Heisenberg incline la tête sur « T'as foutrement raison », le joueur déglutit avant de répondre
     const nod = t > 13.3 && t < 14.2 ? Math.sin(((t - 13.3) / 0.9) * Math.PI) * 0.18 : 0;
     walt.userData.head.rotation.x = nod;
     const nervous = t > 9.2 && t < 10.3 ? Math.sin(t * 22) * 0.012 : 0;
-    player.userData.head.position.x = nervous;
-    player.userData.head.rotation.x = t > 9.2 && t < 12 ? 0.1 : 0;
+    const ph = player.userData.head || player.children[0]?.userData.head; // tête parfois construite après coup
+    if (ph) {
+      ph.userData.x0 ??= ph.position.x;
+      ph.position.x = ph.userData.x0 + nervous;
+      ph.rotation.x = t > 9.2 && t < 12 ? 0.1 : 0;
+    } else {
+      player.rotation.z = nervous * 2;
+    }
 
     tumble.position.set(-12 + ((t * 1.6) % 30), 0.22 + Math.abs(Math.sin(t * 4)) * 0.12, 5.5);
     tumble.rotation.z = -t * 6;

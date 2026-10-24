@@ -3,6 +3,7 @@ import { BOARD, COUNTRIES } from '../../../shared/board.js';
 import { cellRect, cellCenter, pct, tokenOffset, CORNER, TOTAL } from '../layout.js';
 import { flagSvg } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
+import { skinUrl, skinBackground } from '../skin3d.js';
 
 const ICONS = { chance: '❓', chest: '📦', tax: '💸', airport: '✈️', casino: '🎰' };
 
@@ -124,9 +125,10 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
           if (p.jail.in) { dx = dx * 0.6 + 0.25; dy = dy * 0.6 - 0.25; } else { dx = dx * 0.6 - 0.45; dy = dy * 0.6 + 0.45; }
         }
         const isTurn = state.turn?.pid === p.id;
+        const url = skinUrl(state.id, p);
         return (
-          <div key={p.id} className={`token ${isTurn ? 'active' : ''}`} title={p.name}
-            style={{ left: pct(c.x + dx), top: pct(c.y + dy), background: p.color }}>
+          <div key={p.id} className={`token ${isTurn ? 'active' : ''} ${url ? 'has-skin' : ''}`} title={p.name}
+            style={{ left: pct(c.x + dx), top: pct(c.y + dy), background: p.color, ...skinBackground(state.id, p), '--pc': p.color }}>
             {p.isBot ? '🤖' : p.name[0]?.toUpperCase()}
           </div>
         );

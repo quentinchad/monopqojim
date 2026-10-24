@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
+import Avatar from './Avatar.jsx';
+
+const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 import { PLAYER_COLORS } from '../../../shared/board.js';
 import { lobby, toast } from '../net.js';
 import ThemePicker from './ThemePicker.jsx';
@@ -11,6 +14,7 @@ export default function Lobby({ state, me, onLeave }) {
   const s = state.settings;
   const link = inviteLink(state.id);
   const [copied, setCopied] = useState(false);
+  const [skinOpen, setSkinOpen] = useState(false);
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1500); }
@@ -37,7 +41,7 @@ export default function Lobby({ state, me, onLeave }) {
           <ul className="lobby-players">
             {state.players.map((p) => (
               <li key={p.id} className={p.connected || p.isBot ? '' : 'offline'}>
-                <span className="avatar" style={{ background: p.color }}>{p.isBot ? '🤖' : p.name[0]?.toUpperCase()}</span>
+                <Avatar state={state} p={p} />
                 <span className="pname">{p.name}{p.id === me && ' (vous)'}</span>
                 {p.id === state.hostId && <span className="tag">👑 hôte</span>}
                 {p.isBot && <span className="tag">bot</span>}
@@ -56,6 +60,11 @@ export default function Lobby({ state, me, onLeave }) {
                       style={{ background: c }} onClick={() => lobby('color', { color: c })} />
                   );
                 })}
+              </div>
+              <h3>Votre pion</h3>
+              <div className="row" style={{ justifyContent: 'flex-start' }}>
+                <Avatar state={state} p={meP} />
+                <button className="btn" onClick={() => setSkinOpen(true)}>🎨 {meP.skin ? 'Modifier mon pion' : 'Créer mon pion à partir d’une image'}</button>
               </div>
             </>
           )}
@@ -106,6 +115,11 @@ export default function Lobby({ state, me, onLeave }) {
           )}
         </section>
       </div>
+      {skinOpen && (
+        <Suspense fallback={null}>
+          <SkinEditor me={meP} onClose={() => setSkinOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import Avatar from './Avatar.jsx';
 import { BOARD } from '../../../shared/board.js';
 import { useElementSize } from '../hooks.js';
 import { money } from '../gameInfo.js';
@@ -235,7 +236,7 @@ export default function EndGameStats({ state, onClose }) {
           {ranking.map((p, k) => (
             <div key={p.id} className={`podium-item rank-${k + 1}`}>
               <span className="podium-rank">{['🥇', '🥈', '🥉'][k] || `${k + 1}e`}</span>
-              <span className="avatar" style={{ background: p.color }}>{p.isBot ? '🤖' : p.name[0]?.toUpperCase()}</span>
+              <Avatar state={state} p={p} />
               <div>
                 <div className="pname">{p.name}</div>
                 <small>{p.id === state.winner ? money(last.worth[p.id] || 0) : `éliminé au tour ${ps[p.id]?.outTurn ?? '?'}`}</small>

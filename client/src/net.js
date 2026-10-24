@@ -28,9 +28,9 @@ let toastHandler = () => {};
 export const onToast = (fn) => { toastHandler = fn; };
 export const toast = (msg, kind = 'error') => toastHandler(msg, kind);
 
-function emit(event, payload) {
+function emit(event, payload, ms = 8000) {
   return new Promise((resolve) => {
-    socket.timeout(8000).emit(event, payload, (err, res) => {
+    socket.timeout(ms).emit(event, payload, (err, res) => {
       if (err) { toast('Le serveur ne répond pas'); return resolve({ error: 'timeout' }); }
       if (res?.error) { toast(res.error); sfx.error(); }
       resolve(res || {});
@@ -40,6 +40,7 @@ function emit(event, payload) {
 
 export const act = (type, data = {}) => emit('action', { type, ...data });
 export const lobby = (op, data = {}) => emit('lobby', { op, ...data });
+export const sendSkin = (data) => emit('skin', data, 20000);
 export async function join(roomId, name) {
   const token = tokenFor(roomId && String(roomId).toUpperCase());
   const res = await emit('join', { roomId, name, token });

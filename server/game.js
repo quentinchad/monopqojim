@@ -4,6 +4,7 @@ import {
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
+import { cleanCharacter } from '../shared/characters.js';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const shuffle = (arr) => {
@@ -15,6 +16,7 @@ const shuffle = (arr) => {
   return a;
 };
 const ALL_CARDS = Object.fromEntries([...CHANCE_CARDS, ...CHEST_CARDS].map((c) => [c.id, c]));
+export const SKIN_TYPES = ['person', 'animal', 'vehicle', 'object', 'character'];
 const BOT_NAMES = ['Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul', 'Bot Dakar'];
 
 export class GameError extends Error {}
@@ -97,6 +99,7 @@ export class Game {
       jail: { in: false, turns: 0, heavy: false },
       jailCards: [], trafficking: false,
       status: 'alive', usedGoulag: false, goulagSince: null, debtCreditor: null,
+      skin: null, // pion personnalisé : { type, colors, v } (l'image est servie à part, voir skinImage)
     };
     this.players.push(p);
     if (!this.hostId && !isBot) this.hostId = p.id;
@@ -151,6 +154,54 @@ export class Game {
     };
     this.changed();
   }
+
+  // ---------- pion personnalisé ----------
+  // data : { type, colors: ['#rrggbb'…], image: 'data:image/jpeg;base64,…' } ou null pour revenir au pion classique
+  setSkin(pid, data) {
+    const p = this.player(pid);
+    if (!p) fail('Joueur inconnu');
+    this.skinImages ||= {};
+    if (!data) {
+      p.skin = null;
+      delete this.skinImages[pid];
+      this.changed();
+      return;
+    }
+    if (!SKIN_TYPES.includes(data.type)) fail('Type de pion inconnu');
+    // personnage (prédéfini ou composé) : uniquement une petite configuration, sans image
+    if (data.type === 'character') {
+      const char = cleanCharacter(data.char);
+      if (!char) fail('Personnage invalide');
+      delete this.skinImages[pid];
+      p.skin = { type: 'character', char, preset: typeof data.preset === 'string' ? data.preset.slice(0, 20) : null, v: Date.now() };
+      this.changed();
+      return;
+    }
+    const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(data.image || ''));
+    if (!m) fail('Image invalide');
+    const buf = Buffer.from(m[2], 'base64');
+    if (buf.length > 400 * 1024) fail('Image trop lourde');
+    const colors = (Array.isArray(data.colors) ? data.colors : [])
+      .filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 4);
+    // visage analysé (personnage) : repères et triangles du maillage, servis à part (voir skinFace)
+    let face = null;
+    const f = data.face;
+    const ints = (a, n, max) => Array.isArray(a) && a.length <= n && a.every((v) => Number.isInteger(v) && Math.abs(v) <= max);
+    if (data.type === 'person' && f && ints(f.pts, 478 * 3, 5000) && f.pts.length === 478 * 3 && ints(f.tri, 3000, 477)) {
+      face = { pts: f.pts, tri: f.tri };
+    }
+    const hair = data.hair && ['bald', 'short', 'long'].includes(data.hair.style)
+      ? { style: data.hair.style, vol: Math.max(0, Math.min(0.6, +data.hair.vol || 0)) } : null;
+    this.skinImages[pid] = { mime: m[1], buf, face };
+    // cadrage du visage pour les pastilles (centre x, y et taille, en fraction de l'image)
+    const fo = data.focus;
+    const focus = fo && [fo.x, fo.y, fo.s].every((v) => Number.isFinite(+v) && +v >= 0 && +v <= 1)
+      ? { x: +(+fo.x).toFixed(3), y: +(+fo.y).toFixed(3), s: Math.max(0.15, +(+fo.s).toFixed(3)) } : null;
+    p.skin = { type: data.type, colors, v: Date.now(), face: !!face, hair, focus };
+    this.changed();
+  }
+
+  skinImage(pid) { return this.skinImages?.[pid] || null; }
 
   requireHost(id) { if (id !== this.hostId) fail('Seul l’hôte peut faire ça'); }
 

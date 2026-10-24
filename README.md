@@ -75,6 +75,12 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 
 **🔊 Bruitages** : sons synthétisés en direct (Web Audio, aucun fichier à charger) pour les dés, les pas des pions, votre tour, achats, constructions, loyers et gains, cartes, enchères (mises et marteau), échanges, casino (levier, rouleaux, jackpot), duel du goulag (compte à rebours, tirs, touches), annonces, et une bande-son pour chaque cinématique (réacteurs et explosion, sirène et plaquage, vent du désert et impact du titre « Heisenberg »). Bouton 🔊 / 🔇 et volume réglable dans le salon, l’accueil, la partie et la démo ; le choix est mémorisé dans le navigateur.
 
+**🎨 Pions personnalisés** (salon ou partie → « Personnaliser mon pion ») :
+- **Personnages** prêts à l’emploi : Walter White, Saul Goodman, CR7, Messi, Hitler, Trump, Epstein, les Tren Twins, Vin Diesel, Jack Sparrow, Tyler Durden, Max Verstappen (figurines simplifiées reconnaissables à leur silhouette, coiffure et tenue, sans logo ni symbole).
+- **Perso sur mesure** : morphologie, taille, peau, yeux, coupe et couleur de cheveux, barbe, lunettes, chapeau, tenue (10 hauts, jusqu’à 3 couleurs, numéro de maillot), pantalon, chaussures, accessoires, jumeaux ; on peut partir d’un personnage existant.
+- **Depuis une image** : import, recadrage, détection du sujet (personnage, animal, véhicule, objet) ; pour un visage, la tête est reconstruite en 3D à partir des repères du visage (MediaPipe, dans le navigateur), avec coiffure et couleurs tirées de la photo.
+Le pion apparaît sur le plateau 3D, dans les cinématiques, et en portrait dans la liste des joueurs, sur le pion 2D et dans le duel. Il est mémorisé dans le navigateur et réappliqué à chaque partie.
+
 **Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
 
 **Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, « Say my name », machine à sous du casino, duel du goulag contre un bot ou entre bots, arrestation « BUSTED », cartes et annonces, dés, statistiques d’une partie simulée entre bots).

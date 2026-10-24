@@ -5,6 +5,7 @@ import Lobby from './components/Lobby.jsx';
 import Game from './components/Game.jsx';
 import Demo from './components/Demo.jsx';
 import { notifyHost, notifyReady } from './embed.js';
+import { applySavedSkin } from './skins.js';
 
 const roomFromUrl = () => {
   const m = window.location.pathname.match(/\/room\/([A-Za-z0-9]+)/);
@@ -62,6 +63,7 @@ export default function App() {
       return false;
     }
     setSession({ roomId: res.roomId, playerId: res.playerId });
+    if (res.playerId) applySavedSkin(res.state, res.playerId);
     setState(res.state);
     if (roomFromUrl() !== res.roomId) window.history.pushState(null, '', `/room/${res.roomId}`);
     return true;

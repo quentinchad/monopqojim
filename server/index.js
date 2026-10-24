@@ -17,6 +17,20 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 app.get('/health', (_req, res) => res.json({ ok: true, rooms: rooms.size }));
+// image du pion personnalisé d'un joueur (gardée hors de l'état de jeu pour ne pas l'alourdir)
+app.get('/skin/:room/:pid/face', (req, res) => {
+  const face = rooms.get(String(req.params.room).toUpperCase())?.skinImage(req.params.pid)?.face;
+  if (!face) return res.status(404).end();
+  res.set('Cache-Control', 'public, max-age=86400, immutable');
+  res.json(face);
+});
+app.get('/skin/:room/:pid', (req, res) => {
+  const img = rooms.get(String(req.params.room).toUpperCase())?.skinImage(req.params.pid);
+  if (!img) return res.status(404).end();
+  res.set('Content-Type', img.mime);
+  res.set('Cache-Control', 'public, max-age=86400, immutable'); // l'adresse change à chaque nouveau skin (?v=)
+  res.send(img.buf);
+});
 if (fs.existsSync(DIST)) {
   app.use(express.static(DIST));
   app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
@@ -123,6 +137,12 @@ io.on('connection', (socket) => {
       case 'start': game.start(pid); break;
       default: throw new GameError('Opération inconnue');
     }
+  }));
+
+  socket.on('skin', safe((data) => {
+    const { game, pid } = ctx();
+    if (!game || !pid) throw new GameError('Pas dans une partie');
+    game.setSkin(pid, data.remove ? null : data);
   }));
 
   socket.on('action', safe((a) => {

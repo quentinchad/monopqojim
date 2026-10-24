@@ -3,6 +3,7 @@ import { RULES } from '../../../shared/board.js';
 import { playerById, money } from '../gameInfo.js';
 import { createSayMyName, LINES, SAY_MY_NAME_DURATION, T_TITLE } from '../saymyname.js';
 import { sayMyNameSound } from '../sound.js';
+import { skinSources } from '../skin3d.js';
 
 // Cinématique « Say my name » montrée à tous quand un trafiquant livre sa marchandise
 export default function SayMyNameCinematic({ event, state, onEnd }) {
@@ -14,7 +15,7 @@ export default function SayMyNameCinematic({ event, state, onEnd }) {
 
   useEffect(() => {
     const el = mount.current;
-    const film = createSayMyName({ container: el, color: p?.color });
+    const film = createSayMyName({ container: el, color: p?.color, skin: p?.skin, ...skinSources(state.id, p) });
     // la taille est vérifiée à chaque image (fiable même si l'onglet était en arrière-plan à l'ouverture)
     let size = '';
     const fit = () => {

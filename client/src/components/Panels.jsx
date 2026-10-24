@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Avatar from './Avatar.jsx';
 import { BOARD, COUNTRIES, COUNTRY_CELLS } from '../../../shared/board.js';
 import { act } from '../net.js';
 import { money, playerById, ownsCountry } from '../gameInfo.js';
@@ -14,7 +15,7 @@ export function PlayersPanel({ state, me, onTrade }) {
         const owned = Object.keys(state.props).map(Number).filter((i) => state.props[i].owner === p.id);
         return (
           <div key={p.id} className={`player-row ${isTurn ? 'turn' : ''} status-${p.status}`} style={{ '--pc': p.color }}>
-            <span className="avatar" style={{ background: p.color }}>{p.isBot ? '🤖' : p.name[0]?.toUpperCase()}</span>
+            <Avatar state={state} p={p} />
             <div className="pinfo">
               <div className="pname">
                 {p.name}{p.id === me && <small> (vous)</small>}

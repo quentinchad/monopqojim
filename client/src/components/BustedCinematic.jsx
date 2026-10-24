@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { playerById } from '../gameInfo.js';
 import { BUSTED_DURATION } from '../busted.js';
 import { bustedSound } from '../sound.js';
+import { skinSources } from '../skin3d.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 
@@ -10,7 +11,7 @@ export default function BustedCinematic({ event, state, positions, onEnd }) {
   const p = playerById(state, event.pid);
   const [busted, setBusted] = useState(false);
   const cinematic = useMemo(
-    () => ({ key: event.id, kind: 'busted', from: event.from, pid: event.pid, color: p?.color }),
+    () => ({ key: event.id, kind: 'busted', from: event.from, pid: event.pid, color: p?.color, skin: p?.skin, ...skinSources(state.id, p) }),
     [event.id],
   );
 

@@ -22,6 +22,7 @@ import { inviteLink } from '../embed.js';
 import { useGameSounds } from '../useGameSounds.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
+const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 const SAY_MY_NAME_MS = 18000;
 const CINEMATICS = ['busted', 'hijack', 'delivery'];
@@ -93,6 +94,7 @@ export default function Game({ state, me, onLeave }) {
   const [trade, setTrade] = useState(null); // id du joueur ciblé ou true
   const [leftOpen, setLeftOpen] = useState(true);
   const [showStats, setShowStats] = useState(false);
+  const [skinOpen, setSkinOpen] = useState(false);
   // les statistiques s'ouvrent d'elles-mêmes à la fin de la partie
   const wasEnded = useRef(state.phase === 'ended');
   useEffect(() => {
@@ -192,6 +194,7 @@ export default function Game({ state, me, onLeave }) {
             if (confirm(`Déclarer faillite ? Vos propriétés reviennent à la banque${goulag ? ' et vous partez au goulag' : ' et vous êtes éliminé'}.`)) act('bankrupt');
           }}>🏳️ Déclarer faillite</button>
         )}
+        {playerById(state, me) && <button className="btn ghost wide" onClick={() => setSkinOpen(true)}>🎨 Personnaliser mon pion</button>}
         <h4 className="section-title">Mes propriétés</h4>
         <MyProperties state={state} me={me} onCell={setSelected} />
       </aside>
@@ -201,6 +204,7 @@ export default function Game({ state, me, onLeave }) {
         <TradeModal state={state} me={me} counter={trade.counter} onClose={() => setTrade(null)}
           initialTarget={trade === true || trade.counter ? trade.counter?.from ?? null : trade} />
       )}
+      {skinOpen && <Suspense fallback={null}><SkinEditor me={playerById(state, me)} onClose={() => setSkinOpen(false)} /></Suspense>}
       {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
       {cinematic?.type === 'hijack' && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {cinematic?.type === 'busted' && <BustedCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
