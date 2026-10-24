@@ -205,3 +205,14 @@ setInterval(() => {
 }, 3000);
 
 server.listen(PORT, () => console.log(`🎲 Monopqojim en écoute sur http://localhost:${PORT}`));
+
+// Anti-veille Render (plan gratuit) : le service s'endort après 15 min sans visite.
+// Il se rend visite à lui-même toutes les 10 min via son adresse publique (fournie par Render
+// dans RENDER_EXTERNAL_URL). Désactivable avec KEEP_ALIVE=0.
+const SELF_URL = process.env.RENDER_EXTERNAL_URL;
+if (SELF_URL && process.env.KEEP_ALIVE !== '0') {
+  setInterval(() => {
+    fetch(`${SELF_URL}/health`).catch((e) => console.warn('Anti-veille : échec du ping', e.message));
+  }, 10 * 60 * 1000);
+  console.log(`⏰ Anti-veille actif : ping de ${SELF_URL}/health toutes les 10 min`);
+}
