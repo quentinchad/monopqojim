@@ -18,6 +18,7 @@ import SlotMachine from './SlotMachine.jsx';
 import { randomBotSkin } from '../../../shared/characters.js';
 
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
+const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 
@@ -78,6 +79,7 @@ function simulateGame(count = 4) {
   let shortest = null;
   for (let attempt = 0; attempt < 6; attempt++) {
     const game = new Game('DEMO');
+    game.goulagCinematicMs = 0;
     ['Vous', 'Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul'].slice(0, count).forEach((name, k) => {
       const p = game.addPlayer({ name, token: null, isBot: true });
       // les bots ont un pion au hasard, comme en partie
@@ -137,6 +139,7 @@ export default function Demo() {
   const [banner, setBanner] = useState(null);
   const [statsState, setStatsState] = useState(null);
   const [podiumState, setPodiumState] = useState(null);
+  const [goulag, setGoulag] = useState(null); // { event, state }
   const [podiumCount, setPodiumCount] = useState(5);
   const [smnColor, setSmnColor] = useState(PLAYER_COLORS[0]);
   const [smn, setSmn] = useState(null);
@@ -260,6 +263,15 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>⛓️ Départ au goulag (cinématique 3D)</h3>
+          <p className="muted">Montrée à tous quand un joueur fait faillite : escorte en costard, gardes à lunettes noires, porte qui claque.</p>
+          <div className="row" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn primary" onClick={() => setGoulag({ id: Date.now(), skin: null })}>▶ Pion classique</button>
+            <button className="btn" onClick={() => setGoulag({ id: Date.now(), skin: { ...randomBotSkin(), v: 1 } })}>🎲 Personnage au hasard</button>
+          </div>
+        </section>
+
+        <section className="panel">
           <h3>🏆 Podium de fin de partie (3D)</h3>
           <p className="muted">Simule une partie entre bots, puis présente les perdants, le 3e, le 2e et le vainqueur.</p>
           <label className="demo-field">Nombre de joueurs
@@ -293,6 +305,12 @@ export default function Demo() {
       </div>
 
       {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}
+      {goulag && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <GoulagCinematic event={{ id: goulag.id, type: 'goulag', pid: 'me' }} onEnd={() => setGoulag(null)}
+            state={{ ...boardState, id: 'DEMO', players: boardState.players.map((p) => (p.id === 'me' ? { ...p, skin: goulag.skin } : p)) }} />
+        </Suspense>
+      )}
       {podiumState && (
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <PodiumCinematic state={podiumState} onEnd={() => { setStatsState(podiumState); setPodiumState(null); }} />

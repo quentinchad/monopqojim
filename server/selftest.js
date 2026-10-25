@@ -6,6 +6,7 @@ import { BOARD } from '../shared/board.js';
 let games = 0, stats = { goulagFights: 0, hijacks: 0, swaps: 0, traffic: 0, casino: 0, wins: 0, stalls: 0 };
 for (let g = 0; g < 200; g++) {
   const game = new Game('T' + g);
+  game.goulagCinematicMs = 0; // pas d'affichage : le duel démarre tout de suite
   for (let i = 0; i < 5; i++) game.addPlayer({ name: 'B' + i, token: null, isBot: true });
   game.hostId = game.players[0].id;
   game.start(game.hostId);
@@ -44,6 +45,7 @@ console.log('parties', games, stats);
 // Statistiques : une partie terminée doit avoir un historique cohérent
 {
   const game = new Game('S');
+  game.goulagCinematicMs = 0;
   for (let i = 0; i < 4; i++) game.addPlayer({ name: 'B' + i, token: null, isBot: true });
   game.hostId = game.players[0].id;
   game.start(game.hostId);

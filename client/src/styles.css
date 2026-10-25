@@ -632,3 +632,14 @@ small { color: var(--muted); }
 .podium-list { position: absolute; left: 16px; top: calc(9vh + 14px); z-index: 3; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #e5e7eb; background: rgba(10, 8, 25, .55); padding: 10px 12px; border-radius: 12px; }
 .podium-list .win { color: #fde047; }
 .podium-list:empty { display: none; }
+
+/* ---------- départ au goulag ---------- */
+.goulag-overlay .goulag-grade { position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, .65) 100%), linear-gradient(rgba(40, 60, 90, .12), rgba(90, 10, 10, .12)); }
+.goulag-overlay .board3d canvas { filter: saturate(.55) contrast(1.1); transition: filter 1s; }
+.goulag-overlay.is-closed .board3d canvas { filter: saturate(0) brightness(.25); }
+.goulag-caption { position: absolute; left: 50%; bottom: calc(9vh + 24px); transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; color: #e5e7eb; font-size: clamp(16px, 2.2vw, 24px); text-shadow: 0 2px 6px #000; text-align: center; animation: fadeIn .8s ease-out; }
+.goulag-caption small { color: #f87171; letter-spacing: 3px; text-transform: uppercase; font-size: 12px; font-weight: 900; }
+.goulag-caption.quiet { font-style: italic; color: #cbd5e1; font-size: clamp(15px, 1.8vw, 20px); }
+.goulag-end { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; animation: fadeIn .8s ease-out; }
+.goulag-end .ge-title { font-size: clamp(42px, 8vw, 96px); font-weight: 900; letter-spacing: 12px; color: #e5e7eb; text-shadow: 0 0 30px rgba(239, 68, 68, .55); }
+.goulag-end .ge-sub { color: #fca5a5; font-size: 16px; letter-spacing: 1px; }

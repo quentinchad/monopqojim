@@ -58,6 +58,8 @@ export class Game {
     this.createdAt = Date.now();
     this.version = 0;
     this.stats = null;
+    // durée de la cinématique du goulag (0 dans les simulations sans affichage)
+    this.goulagCinematicMs = 14000;
   }
 
   // ---------- utilitaires ----------
@@ -961,6 +963,10 @@ export class Game {
       p.goulagSince = Date.now();
       this.addLog(`⛓️ ${p.name} est envoyé au goulag… il attend un adversaire pour tenter de revenir`, p.id);
       this.addEvent('goulag', { pid: p.id, text: `⛓️ ${p.name} part au goulag !` });
+      // cinématique d'arrivée au goulag chez tout le monde : les bots attendent et le duel commence après
+      // deux départs au goulag d'affilée : les cinématiques se suivent, le duel attend la seconde
+      this.fightNotBefore = Math.max(this.fightNotBefore || 0, Date.now()) + this.goulagCinematicMs;
+      this.animUntil = Math.max(this.animUntil || 0, this.fightNotBefore);
     } else {
       p.status = 'eliminated';
       this.addEvent('bankrupt', { pid: p.id, text: `💀 ${p.name} est éliminé !` });
@@ -995,6 +1001,12 @@ export class Game {
 
   checkGoulag() {
     if (this.fight || this.phase !== 'playing') return;
+    const wait = (this.fightNotBefore || 0) - Date.now();
+    if (wait > 0) {
+      clearTimeout(this.goulagTimer);
+      this.goulagTimer = setTimeout(() => { this.checkGoulag(); this.changed(); }, wait);
+      return;
+    }
     const waiting = this.players.filter((p) => p.status === 'goulag').sort((a, b) => a.goulagSince - b.goulagSince);
     if (waiting.length < 2 || this.alive.length < 2) return;
     const [a, b] = waiting;
@@ -1225,6 +1237,7 @@ export class Game {
 
   destroy() {
     clearTimeout(this.auctionTimer);
+    clearTimeout(this.goulagTimer);
     clearTimeout(this.botTimer);
     this.fight?.stop();
   }

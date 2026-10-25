@@ -17,7 +17,7 @@ export const OPTIONS = {
     tshirt: 'T-shirt', tank: 'Débardeur', shirt: 'Chemise', suit: 'Costume cravate', jacket: 'Veste', sweater: 'Pull',
     jersey: 'Maillot de foot', racing: 'Combinaison de course', military: 'Uniforme', pirate: 'Manteau de pirate',
   },
-  extras: { chain: 'Chaîne et croix', beads: 'Perles dans les cheveux', bandana: 'Bandana', kohl: 'Yeux maquillés', earring: 'Boucle d’oreille' },
+  extras: { chain: 'Chaîne et croix', beads: 'Perles dans les cheveux', bandana: 'Bandana', kohl: 'Yeux maquillés', earring: 'Boucle d’oreille', angry: 'Air énervé', crossed: 'Bras croisés' },
 };
 
 export const DEFAULT_CHARACTER = {
@@ -63,7 +63,7 @@ export function cleanCharacter(c) {
     number: String(c.number ?? '').replace(/[^0-9]/g, '').slice(0, 2),
     stripes: !!c.stripes,
     pants: color(c.pants, D.pants), shoes: color(c.shoes, D.shoes),
-    extras: (Array.isArray(c.extras) ? c.extras : []).filter((e) => Object.hasOwn(OPTIONS.extras, e)).slice(0, 5),
+    extras: (Array.isArray(c.extras) ? c.extras : []).filter((e) => Object.hasOwn(OPTIONS.extras, e)).slice(0, 7),
     twins: !!c.twins,
   };
 }

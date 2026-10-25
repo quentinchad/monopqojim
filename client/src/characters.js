@@ -129,7 +129,7 @@ function topTexture(c) {
 }
 
 function capGeo(r, theta) {
-  return new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, theta);
+  return new THREE.SphereGeometry(r, 48, 28, 0, Math.PI * 2, 0, theta);
 }
 
 function buildHair(head, c, R) {
@@ -142,7 +142,7 @@ function buildHair(head, c, R) {
   };
   switch (c.hair) {
     case 'bald': return;
-    case 'buzz': cap(R * 1.01, 1.35, -0.45); return;
+    case 'buzz': cap(R * 1.035, 1.35, -0.45, 1.01, 1.07, 1.01); return;
     case 'receding': cap(R * 1.05, 1.42, -0.62, 1.03, 1.05, 1.04); return;
     case 'slick': cap(R * 1.05, 1.45, -0.62, 1.02, 1.04, 1.06); return;
     case 'side': {
@@ -313,13 +313,19 @@ function buildFace(head, c, R, skinMat) {
       const k = add(head, new THREE.TorusGeometry(R * 0.17, R * 0.035, 8, 20), std('#111111'), s * R * 0.34, R * 0.13, R * 0.9);
       k.scale.set(1.1, 0.75, 1);
     }
-    const brow = add(head, new THREE.BoxGeometry(R * 0.34, R * 0.07, R * 0.08), std(c.hair === 'bald' ? shade(c.skin, 0.55) : c.hairColor), s * R * 0.34, R * 0.4, R * 0.92);
-    brow.rotation.z = s * -0.12;
+    const angry = c.extras.includes('angry');
+    const brow = add(head, new THREE.BoxGeometry(R * 0.36, R * (angry ? 0.09 : 0.07), R * 0.08), std(c.hair === 'bald' ? shade(c.skin, 0.55) : c.hairColor), s * R * 0.33, R * (angry ? 0.33 : 0.4), R * 0.94);
+    brow.rotation.z = s * (angry ? 0.5 : -0.12); // sourcils froncés : bout intérieur vers le bas
     add(head, new THREE.SphereGeometry(R * 0.2, 12, 8), skinMat, s * R * 0.99, 0, 0).scale.set(0.45, 1, 0.8); // oreilles
     if (s > 0 && c.extras.includes('earring')) add(head, new THREE.TorusGeometry(R * 0.07, R * 0.02, 6, 12), std('#d4af37', { metalness: 0.9, roughness: 0.2 }), R * 1.02, -R * 0.2, 0);
   }
   add(head, new THREE.SphereGeometry(R * 0.14, 12, 10), std(shade(c.skin, 0.93)), 0, -R * 0.06, R * 1.0); // nez
-  add(head, new THREE.BoxGeometry(R * 0.36, R * 0.07, R * 0.08), std('#7f1d1d'), 0, -R * 0.42, R * 0.92); // bouche
+  if (c.extras.includes('angry')) {
+    // bouche pincée et crispée
+    for (const s of [-1, 1]) add(head, new THREE.BoxGeometry(R * 0.2, R * 0.05, R * 0.08), std('#5b1414'), s * R * 0.09, -R * 0.44, R * 0.92).rotation.z = s * 0.25;
+  } else {
+    add(head, new THREE.BoxGeometry(R * 0.36, R * 0.07, R * 0.08), std('#7f1d1d'), 0, -R * 0.42, R * 0.92); // bouche
+  }
   if (c.extras.includes('bandana') && c.hat !== 'cap') {
     const band = add(head, new THREE.CylinderGeometry(R * 1.03, R * 1.03, R * 0.25, 32, 1, true), std('#b91c1c', { side: THREE.DoubleSide }), 0, R * 0.55, 0);
     band.rotation.x = -0.2;
@@ -364,6 +370,16 @@ function buildFigure(c) {
     add(g, new THREE.SphereGeometry(0.04 * w * Math.max(1, aw * 0.85), 14, 10), c.top === 'tank' ? skinMat : topMat, s * 0.105 * w * b.chest, 0.41, 0);
     const upper = add(g, new THREE.CylinderGeometry(0.03 * aw, 0.027 * aw, 0.1, 12), sleeve, s * (0.125 * w * b.chest + 0.01), 0.36, 0);
     upper.rotation.z = s * 0.18;
+    if (c.extras.includes('crossed')) {
+      // bras croisés sur la poitrine
+      upper.rotation.x = -0.35;
+      upper.position.z = 0.02;
+      const front = 0.085 * w * b.chest + 0.025 * aw;
+      const fa = add(g, new THREE.CylinderGeometry(0.027 * aw, 0.025 * aw, 0.15 * w * b.chest, 12), fore, s * 0.02, 0.32 + s * 0.012, front);
+      fa.rotation.z = Math.PI / 2 + s * 0.12;
+      add(g, new THREE.SphereGeometry(0.027 * Math.max(1, aw * 0.8), 12, 8), skinMat, -s * 0.075 * w * b.chest, 0.33 + s * 0.012, front + 0.005);
+      continue;
+    }
     const lowerArm = add(g, new THREE.CylinderGeometry(0.026 * aw, 0.024 * aw, 0.09, 12), fore, s * (0.135 * w * b.chest + 0.02), 0.27, 0.01);
     lowerArm.rotation.z = s * 0.1;
     add(g, new THREE.SphereGeometry(0.027 * Math.max(1, aw * 0.8), 12, 8), skinMat, s * (0.14 * w * b.chest + 0.022), 0.215, 0.012);

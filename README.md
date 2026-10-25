@@ -61,6 +61,8 @@ Le joueur qui tire la carte transporte de la drogue :
 ### ⛓️ Goulag
 Un joueur en faillite part au goulag (**une seule fois par partie**). Dès qu’il y a **2 joueurs au goulag et au moins 2 joueurs encore en jeu**, ils s’affrontent dans un **duel en arène** (ZQSD/WASD pour bouger, souris pour viser, clic pour tirer, Espace pour esquiver, 75 s max). Le perdant est éliminé définitivement, le gagnant revient sur la case Départ avec **1 000 $** (réglable). Sinon le joueur au goulag attend.
 
+Chaque départ au goulag déclenche chez tous les joueurs une **cinématique 3D** (~12 s) : de nuit, sous la neige et le projecteur du mirador, le joueur est conduit vers le bâtiment barbelé par trois costauds en costard à la mine furieuse ; deux autres, lunettes noires et bras croisés, l’attendent devant la porte, qui se referme sur lui. Le duel ne commence qu’après la cinématique.
+
 ### 🔀 Échange forcé (carte Chance)
 Une ville du joueur et une ville d’un adversaire sont tirées au hasard et échangées (parmi les propriétés dont le pays n’a pas de bâtiments).
 

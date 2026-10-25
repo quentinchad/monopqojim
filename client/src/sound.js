@@ -329,6 +329,36 @@ export function bustedSound() {
   return b;
 }
 
+// Goulag : vent glacial, nappe grave, pas lourds de l'escorte, cœur qui s'emballe, porte d'acier qui claque
+export function goulagSound({ walk = [1.4, 9.0], guards = 5.2, door = 10.2, duration = 12.2 } = {}) {
+  const b = bus();
+  const out = b.out;
+  if (!out) return b;
+  drone({ out, dur: duration, vol: 0.25, type: 'bandpass', q: 0.7, points: [[0, 300, 0], [1, 450, 1], [4, 300, 0.7], [7, 500, 1], [duration - 0.3, 350, 0.8], [duration, 350, 0]] });
+  for (const f of [41.2, 61.7]) {
+    drone({ out, osc: 'sawtooth', dur: door + 0.3, vol: 0.05, type: 'lowpass', points: [[0, f, 0], [1.5, f, 0.5], [guards, f, 0.8], [door - 0.2, f, 1], [door + 0.2, f, 0]] });
+  }
+  // pas lourds, un peu désynchronisés
+  for (let t = walk[0]; t < walk[1]; t += 0.45) {
+    for (const d of [0, 0.07, 0.13]) noise({ out, at: t + d, dur: 0.07, vol: 0.2, type: 'lowpass', f: 380 });
+  }
+  // battements de cœur qui accélèrent devant les gardes
+  let t = guards;
+  let gap = 0.8;
+  while (t < door) {
+    tone({ out, at: t, f: 58, f2: 38, dur: 0.14, vol: 0.45 });
+    tone({ out, at: t + 0.16, f: 52, f2: 36, dur: 0.12, vol: 0.32 });
+    t += gap;
+    gap = Math.max(0.42, gap * 0.9);
+  }
+  // porte d'acier : grincement puis claquement qui résonne
+  noise({ out, at: door - 0.1, dur: 0.6, vol: 0.12, type: 'bandpass', f: 900, f2: 1400, q: 8, attack: 0.1 });
+  noise({ out, at: door + 0.5, dur: 1.6, vol: 0.9, type: 'lowpass', f: 1200, f2: 80 });
+  tone({ out, at: door + 0.5, f: 70, f2: 35, dur: 1.4, vol: 0.7 });
+  for (const m of [1, 2.7, 4.1]) tone({ out, at: door + 0.5, f: 110 * m, dur: 1.2, vol: 0.06 / m });
+  return b;
+}
+
 // « Say my name » : vent du désert, tension qui monte, coup sourd sur le titre
 export function sayMyNameSound({ title = 15.2, duration = 18 } = {}) {
   const b = bus();

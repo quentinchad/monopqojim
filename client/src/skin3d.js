@@ -285,3 +285,15 @@ export function skinSources(roomId, p) {
     faceSrc: p.skin.face ? `/skin/${roomId}/${p.id}/face${q}` : null,
   };
 }
+
+// Modèle 3D d'un joueur : son pion personnalisé, ou le pion classique à sa couleur
+export function playerModel(roomId, p) {
+  if (p?.skin) return makeSkinModel({ skin: p.skin, ...skinSources(roomId, p), color: p.color });
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: p?.color || '#ef4444', metalness: 0.35, roughness: 0.35 });
+  const add = (geo, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = true; g.add(m); };
+  add(new THREE.CylinderGeometry(0.2, 0.22, 0.07, 32), 0.035);
+  add(new THREE.CylinderGeometry(0.07, 0.16, 0.34, 32), 0.24);
+  add(new THREE.SphereGeometry(0.12, 32, 20), 0.47);
+  return g;
+}

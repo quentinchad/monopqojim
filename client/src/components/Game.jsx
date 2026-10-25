@@ -26,7 +26,9 @@ const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 const SAY_MY_NAME_MS = 18000;
-const CINEMATICS = ['busted', 'hijack', 'delivery'];
+const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag'];
+const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
+const GOULAG_MS = 12200;
 
 // File d'attente des évènements marquants (cartes, détournements, goulag…)
 function useEventQueue(events, paused) {
@@ -64,6 +66,7 @@ function useEventQueue(events, paused) {
     const ms = ev?.type === 'hijack' ? (HIJACK_DURATION + 4) * 1000
       : ev?.type === 'busted' ? (BUSTED_DURATION + 4) * 1000
         : ev?.type === 'delivery' ? SAY_MY_NAME_MS + 4000
+          : ev?.type === 'goulag' ? GOULAG_MS + 4000
           : ev?.type === 'card' ? 6500 : 5000;
     const to = setTimeout(() => remove(activeId), ms);
     return () => clearTimeout(to);
@@ -128,7 +131,7 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // la cinématique remplace la bannière pour les détournements
-  const cinematic = (event?.type === 'hijack' && event.from != null) || event?.type === 'busted' || event?.type === 'delivery' ? event : null;
+  const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag'].includes(event?.type) ? event : null;
   // la carte que je dois valider est déjà affichée au centre, avec son bouton
   const myCard = event?.type === 'card' && event.pid === me && state.turn?.pending?.type === 'card';
   const bannerEvent = cinematic || myCard ? null : event;
@@ -218,6 +221,11 @@ export default function Game({ state, me, onLeave }) {
       {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
       {cinematic?.type === 'hijack' && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {cinematic?.type === 'busted' && <BustedCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
+      {cinematic?.type === 'goulag' && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <GoulagCinematic event={cinematic} state={state} onEnd={nextEvent} />
+        </Suspense>
+      )}
       {cinematic?.type === 'delivery' && (
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <SayMyNameCinematic event={cinematic} state={state} onEnd={nextEvent} />

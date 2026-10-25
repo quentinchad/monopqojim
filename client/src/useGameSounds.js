@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { sfx, eventSound } from './sound.js';
 
-const CINEMATICS = ['busted', 'hijack', 'delivery'];
+const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag'];
 
 // shownPlayers : joueurs tels qu'affichés (argent gelé pendant les animations), pour caler le son des pièces
 export function useGameSounds(state, me, event, shownPlayers = state.players) {
