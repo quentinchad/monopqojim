@@ -957,7 +957,9 @@ export class Game {
 
     this.st(p).outTurn = this.stats?.turns ?? null;
     this.addLog(`💀 ${p.name} fait faillite${toPlayer ? ` au profit de ${toPlayer.name}` : ''}`, p.id);
-    if (this.settings.goulag && !p.usedGoulag) {
+    // en finale (il ne reste qu'un autre joueur), la faillite termine la partie : pas de goulag ni de cinématique
+    const othersAlive = this.alive.filter((x) => x.id !== p.id).length;
+    if (this.settings.goulag && !p.usedGoulag && othersAlive > 1) {
       p.status = 'goulag';
       p.usedGoulag = true;
       p.goulagSince = Date.now();
