@@ -81,6 +81,10 @@ Une ville du joueur et une ville d’un adversaire sont tirées au hasard et éc
 - **Depuis une image** : import, recadrage, détection du sujet (personnage, animal, véhicule, objet) ; pour un visage, la tête est reconstruite en 3D à partir des repères du visage (MediaPipe, dans le navigateur), avec coiffure et couleurs tirées de la photo.
 Le pion apparaît sur le plateau 3D, dans les cinématiques, et en portrait dans la liste des joueurs, sur le pion 2D et dans le duel. Il est mémorisé dans le navigateur et réappliqué à chaque partie.
 
+**🏆 Podium de fin de partie** : avant les statistiques, une cinématique 3D présente les perdants hors podium (du dernier au 4e), puis le 3e, le 2e et enfin le vainqueur (projecteurs, roulement de tambour, confettis, fanfare). Bouton « 🏆 Podium » pour le revoir.
+
+**🤖 Bots** : chaque bot reçoit un pion au hasard, un des personnages (jamais deux fois le même) ou un perso composé aléatoirement.
+
 **Statistiques de fin de partie** : à la fin, un écran s’ouvre pour tout le monde avec le classement, la courbe d’évolution du patrimoine de chaque joueur tour par tour (survol pour le détail, vue tableau), les loyers payés et perçus, des trophées (roi du loyer, pirate de l’air, baron de la drogue, roi des doubles…), la ville la plus visitée, la propriété la plus rentable et un tableau détaillé par joueur.
 
 **Page de démo** (accessible uniquement par son adresse, aucun lien depuis l’accueil) : `/demo` permet de voir les animations sans jouer une partie (cinématique de l’avion, « Say my name », machine à sous du casino, duel du goulag contre un bot ou entre bots, arrestation « BUSTED », cartes et annonces, dés, statistiques d’une partie simulée entre bots).

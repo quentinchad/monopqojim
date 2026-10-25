@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import Avatar from './Avatar.jsx';
 import { BOARD } from '../../../shared/board.js';
 import { useElementSize } from '../hooks.js';
-import { money } from '../gameInfo.js';
+import { money, finalRanking } from '../gameInfo.js';
 
 // Motif de trait par joueur : deuxième moyen d'identification en plus de la couleur
 const DASHES = ['none', '7 4', '2 4', '10 4 2 4', '1 3', '12 3', '5 2 1 2', '8 2 2 2'];
@@ -194,11 +194,7 @@ export default function EndGameStats({ state, onClose }) {
   const ps = stats?.players || {};
   const last = stats?.history[stats.history.length - 1];
 
-  const ranking = useMemo(() => [...players].sort((a, b) => {
-    if (a.id === state.winner) return -1;
-    if (b.id === state.winner) return 1;
-    return (ps[b.id]?.outTurn ?? Infinity) - (ps[a.id]?.outTurn ?? Infinity);
-  }), [players, state.winner]);
+  const ranking = useMemo(() => finalRanking(state), [players, state.winner]);
 
   if (!stats || !last) return null;
 

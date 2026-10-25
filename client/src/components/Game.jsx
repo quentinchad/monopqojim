@@ -23,6 +23,7 @@ import { useGameSounds } from '../useGameSounds.js';
 
 const Board3D = lazy(() => import('./Board3D.jsx'));
 const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
+const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 const SAY_MY_NAME_MS = 18000;
 const CINEMATICS = ['busted', 'hijack', 'delivery'];
@@ -94,12 +95,16 @@ export default function Game({ state, me, onLeave }) {
   const [trade, setTrade] = useState(null); // id du joueur ciblé ou true
   const [leftOpen, setLeftOpen] = useState(true);
   const [showStats, setShowStats] = useState(false);
+  const [showPodium, setShowPodium] = useState(false);
   const [skinOpen, setSkinOpen] = useState(false);
   // les statistiques s'ouvrent d'elles-mêmes à la fin de la partie
   const wasEnded = useRef(state.phase === 'ended');
   useEffect(() => {
-    if (state.phase === 'ended' && !wasEnded.current) setShowStats(true);
+    let to;
+    // fin de partie : le podium (après les dernières animations), puis les statistiques
+    if (state.phase === 'ended' && !wasEnded.current) to = setTimeout(() => setShowPodium(true), 2500);
     wasEnded.current = state.phase === 'ended';
+    return () => clearTimeout(to);
   }, [state.phase]);
   const boardWrap = useRef(null);
   const { w, h } = useElementSize(boardWrap);
@@ -138,7 +143,7 @@ export default function Game({ state, me, onLeave }) {
     try { await navigator.clipboard.writeText(inviteLink(state.id)); toast('Lien copié !', 'info'); } catch { /* ignore */ }
   };
 
-  const controls = <CenterControls state={state} me={me} onLeave={onLeave} animating={animating} onShowStats={() => setShowStats(true)} />;
+  const controls = <CenterControls state={state} me={me} onLeave={onLeave} animating={animating} onShowStats={() => setShowStats(true)} onShowPodium={() => setShowPodium(true)} />;
 
   return (
     <div className={`game ${leftOpen ? '' : 'left-closed'}`}>
@@ -205,6 +210,11 @@ export default function Game({ state, me, onLeave }) {
           initialTarget={trade === true || trade.counter ? trade.counter?.from ?? null : trade} />
       )}
       {skinOpen && <Suspense fallback={null}><SkinEditor me={playerById(state, me)} onClose={() => setSkinOpen(false)} /></Suspense>}
+      {showPodium && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <PodiumCinematic state={state} onEnd={() => { setShowPodium(false); if (state.stats) setShowStats(true); }} />
+        </Suspense>
+      )}
       {showStats && state.stats && <EndGameStats state={state} onClose={() => setShowStats(false)} />}
       {cinematic?.type === 'hijack' && <HijackCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}
       {cinematic?.type === 'busted' && <BustedCinematic event={cinematic} state={state} positions={positions} onEnd={nextEvent} />}

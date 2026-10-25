@@ -15,6 +15,9 @@ import { eventSound } from '../sound.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
 import SlotMachine from './SlotMachine.jsx';
+import { randomBotSkin } from '../../../shared/characters.js';
+
+const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 
@@ -71,11 +74,15 @@ const BANNERS = [
 ];
 
 // Joue une partie complète entre bots avec le vrai moteur, pour montrer l'écran de statistiques
-function simulateGame() {
+function simulateGame(count = 4) {
   let shortest = null;
   for (let attempt = 0; attempt < 6; attempt++) {
     const game = new Game('DEMO');
-    ['Vous', 'Bot Tokyo', 'Bot Rio', 'Bot Berlin'].forEach((name) => game.addPlayer({ name, token: null, isBot: true }));
+    ['Vous', 'Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul'].slice(0, count).forEach((name, k) => {
+      const p = game.addPlayer({ name, token: null, isBot: true });
+      // les bots ont un pion au hasard, comme en partie
+      if (k > 0) p.skin = { ...randomBotSkin(game.players.map((x) => x.skin?.preset).filter(Boolean)), v: k };
+    });
     game.hostId = game.players[0].id;
     game.start(game.hostId);
     for (let k = 0; k < 30000 && game.phase === 'playing'; k++) {
@@ -129,6 +136,8 @@ export default function Demo() {
   const [fightMode, setFightMode] = useState(null); // 'human' | 'bots'
   const [banner, setBanner] = useState(null);
   const [statsState, setStatsState] = useState(null);
+  const [podiumState, setPodiumState] = useState(null);
+  const [podiumCount, setPodiumCount] = useState(5);
   const [smnColor, setSmnColor] = useState(PLAYER_COLORS[0]);
   const [smn, setSmn] = useState(null);
   const [casino, setCasino] = useState(null); // { money, spins, last }
@@ -251,6 +260,17 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🏆 Podium de fin de partie (3D)</h3>
+          <p className="muted">Simule une partie entre bots, puis présente les perdants, le 3e, le 2e et le vainqueur.</p>
+          <label className="demo-field">Nombre de joueurs
+            <select value={podiumCount} onChange={(e) => setPodiumCount(+e.target.value)}>
+              {[2, 3, 4, 5, 6, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <button className="btn primary" onClick={() => setPodiumState(simulateGame(podiumCount))}>▶ Lancer le podium</button>
+        </section>
+
+        <section className="panel">
           <h3>📊 Statistiques de fin de partie</h3>
           <p className="muted">Simule une vraie partie entre 4 bots puis affiche ses statistiques (courbes, trophées…).</p>
           <button className="btn primary" onClick={() => setStatsState(simulateGame())}>▶ Simuler une partie</button>
@@ -273,6 +293,11 @@ export default function Demo() {
       </div>
 
       {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}
+      {podiumState && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <PodiumCinematic state={podiumState} onEnd={() => { setStatsState(podiumState); setPodiumState(null); }} />
+        </Suspense>
+      )}
       {casino && (
         <div className="modal-backdrop" onClick={() => setCasino(null)}>
           <div className="casino-modal" onClick={(e) => e.stopPropagation()}>

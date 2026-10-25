@@ -4,7 +4,7 @@ import {
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
-import { cleanCharacter } from '../shared/characters.js';
+import { cleanCharacter, randomBotSkin } from '../shared/characters.js';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const shuffle = (arr) => {
@@ -111,7 +111,10 @@ export class Game {
     this.requireHost(byId);
     const used = new Set(this.players.map((p) => p.name));
     const name = BOT_NAMES.find((n) => !used.has(n)) || `Bot ${this.players.length + 1}`;
-    this.addPlayer({ name, token: null, isBot: true });
+    const bot = this.addPlayer({ name, token: null, isBot: true });
+    // chaque bot reçoit un pion au hasard : personnage connu (pas déjà pris) ou perso composé
+    const taken = this.players.map((p) => p.skin?.preset).filter(Boolean);
+    bot.skin = { ...randomBotSkin(taken), v: Date.now() };
     this.changed();
   }
 

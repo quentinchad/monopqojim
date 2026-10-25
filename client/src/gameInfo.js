@@ -37,3 +37,13 @@ export function countryOf(cell) {
 }
 
 export const playerById = (state, id) => state.players.find((p) => p.id === id);
+
+// Classement final : le vainqueur, puis les joueurs éliminés du plus tard au plus tôt
+export function finalRanking(state) {
+  const ps = state.stats?.players || {};
+  return [...state.players].sort((a, b) => {
+    if (a.id === state.winner) return -1;
+    if (b.id === state.winner) return 1;
+    return (ps[b.id]?.outTurn ?? Infinity) - (ps[a.id]?.outTurn ?? Infinity);
+  });
+}

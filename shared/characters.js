@@ -67,3 +67,45 @@ export function cleanCharacter(c) {
     twins: !!c.twins,
   };
 }
+
+// ---------- personnage tiré au hasard (pions des bots) ----------
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+const SKINS = ['#f6d5bd', '#f1c7a5', '#e0ac87', '#c99a76', '#a8714f', '#7a4e33', '#4f3222'];
+const HAIR_COLORS = ['#1c1410', '#3b2a1e', '#5a3e2b', '#8b5a3c', '#c48a4a', '#e8c46a', '#d1d5db', '#b91c1c', '#7c3aed'];
+const CLOTHES = ['#dc2626', '#2563eb', '#16a34a', '#facc15', '#9333ea', '#f97316', '#0f172a', '#f8fafc', '#14b8a6', '#db2777', '#78716c'];
+
+export function randomCustomCharacter() {
+  const hair = pickOne(Object.keys(OPTIONS.hair));
+  const hairColor = pickOne(HAIR_COLORS);
+  const top = pickOne(Object.keys(OPTIONS.top));
+  return cleanCharacter({
+    build: pickOne(Object.keys(OPTIONS.build)),
+    height: 0.9 + Math.random() * 0.16,
+    skin: pickOne(SKINS),
+    eyes: pickOne(['#3b2a1e', '#1e3a8a', '#166534', '#111111']),
+    hair, hairColor,
+    beard: Math.random() < 0.5 ? 'none' : pickOne(Object.keys(OPTIONS.beard)),
+    beardColor: hairColor,
+    glasses: Math.random() < 0.7 ? 'none' : pickOne(Object.keys(OPTIONS.glasses)),
+    lensColor: pickOne(['#1f2937', '#b91c1c', '#9fb0a0', '#1e3a8a']),
+    hat: Math.random() < 0.65 ? 'none' : pickOne(Object.keys(OPTIONS.hat)),
+    hatColor: pickOne(CLOTHES),
+    top, topColor: pickOne(CLOTHES), topColor2: pickOne(CLOTHES), topColor3: pickOne(CLOTHES),
+    number: top === 'jersey' || top === 'racing' ? String(1 + Math.floor(Math.random() * 99)) : '',
+    stripes: Math.random() < 0.3,
+    pants: pickOne(['#1e3a5f', '#1f2937', '#4b5563', '#cbbf9f', '#3b2f2a', '#0f172a']),
+    shoes: pickOne(['#1f2937', '#f5f5f5', '#5b4636', '#111111']),
+    extras: Object.keys(OPTIONS.extras).filter(() => Math.random() < 0.12),
+    twins: Math.random() < 0.05,
+  });
+}
+
+// Pion d'un bot : un personnage connu (pas déjà pris) ou un perso composé au hasard
+export function randomBotSkin(taken = []) {
+  const free = CHARACTERS.filter((c) => !taken.includes(c.id));
+  if (free.length && Math.random() < 0.5) {
+    const c = pickOne(free);
+    return { type: 'character', char: c.char, preset: c.id };
+  }
+  return { type: 'character', char: randomCustomCharacter(), preset: null };
+}

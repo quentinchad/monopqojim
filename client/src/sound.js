@@ -266,6 +266,15 @@ export const sfx = {
   hit() { noise({ dur: 0.09, vol: 0.4, type: 'lowpass', f: 900 }); tone({ f: 220, f2: 80, dur: 0.12, vol: 0.25 }); },
   dash() { noise({ dur: 0.18, vol: 0.2, f: 600, f2: 3000, q: 1.2, attack: 0.03 }); },
   beep(go = false) { tone({ f: go ? 1320 : 880, dur: go ? 0.4 : 0.12, type: 'square', vol: 0.06, lp: 3000 }); },
+  // podium : roulement de tambour, arrivée sur une marche, foule en liesse
+  drumroll(dur = 1.2) {
+    for (let t = 0; t < dur; t += 0.045) noise({ at: t, dur: 0.05, vol: 0.12 + (t / dur) * 0.25, type: 'bandpass', f: 220, q: 1.2 });
+  },
+  land() { tone({ f: 140, f2: 60, dur: 0.25, vol: 0.4 }); noise({ dur: 0.12, vol: 0.25, type: 'lowpass', f: 700 }); },
+  cheer() {
+    noise({ dur: 3.2, vol: 0.22, type: 'bandpass', f: 1400, f2: 900, q: 0.5, attack: 0.4 });
+    for (let i = 0; i < 18; i++) noise({ at: Math.random() * 2.5, dur: 0.06, vol: 0.12, type: 'highpass', f: 3500 }); // applaudissements
+  },
   gong() { for (const m of [1, 2.4, 3.9, 5.2]) tone({ f: 130 * m, dur: 2.2 / m + 0.4, vol: 0.12 / m, attack: 0.01 }); },
 };
 

@@ -85,7 +85,7 @@ function Auction({ state, me }) {
   );
 }
 
-export default function CenterControls({ state, me, onLeave, animating, onShowStats }) {
+export default function CenterControls({ state, me, onLeave, animating, onShowStats, onShowPodium }) {
   const t = state.turn;
   const meP = playerById(state, me);
   const cur = t && playerById(state, t.pid);
@@ -99,6 +99,7 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
         <div className="trophy">🏆</div>
         <div className="win-text"><b style={{ color: w?.color }}>{w?.name}</b> remporte la partie !</div>
         <div className="row">
+          {onShowPodium && <button className="btn" onClick={onShowPodium}>🏆 Podium</button>}
           {state.stats && <button className="btn primary" onClick={onShowStats}>📊 Statistiques</button>}
           <button className="btn" onClick={onLeave}>Retour à l’accueil</button>
         </div>
