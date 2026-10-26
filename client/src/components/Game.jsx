@@ -30,6 +30,7 @@ const SAY_MY_NAME_MS = 18000;
 const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag', 'jailVisit'];
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
 const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
+const JAIL_VISIT_MS = 13300; // durée de la cinématique (VISIT_DURATION dans jailVisit.js)
 const GOULAG_MS = 12200;
 
 // File d'attente des évènements marquants (cartes, détournements, goulag…)
@@ -69,6 +70,7 @@ function useEventQueue(events, paused) {
       : ev?.type === 'busted' ? (BUSTED_DURATION + 4) * 1000
         : ev?.type === 'delivery' ? SAY_MY_NAME_MS + 4000
           : ev?.type === 'goulag' ? GOULAG_MS + 4000
+          : ev?.type === 'jailVisit' ? JAIL_VISIT_MS + 4000
           : ev?.type === 'card' ? 6500 : 5000;
     const to = setTimeout(() => remove(activeId), ms);
     return () => clearTimeout(to);

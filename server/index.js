@@ -159,6 +159,7 @@ io.on('connection', (socket) => {
       const others = game.players.filter((p) => p.id !== pid && p.status === 'alive');
       if (op === 'dice') game.forcedDice = [[d.a, d.b]];
       if (op === 'money') me.money = d.amount;
+      if (op === 'pos') me.pos = d.pos;
       if (op === 'traffic') me.trafficking = true;
       if (op === 'hotels') {
         // un adversaire possède toute l'Allemagne avec des hôtels
@@ -170,6 +171,10 @@ io.on('connection', (socket) => {
       if (op === 'card') {
         const deck = d.id.startsWith('c_') ? 'chance' : 'chest';
         game.decks[deck] = [d.id, ...game.decks[deck].filter((x) => x !== d.id)];
+      }
+      if (op === 'jail') {
+        // un adversaire est en prison, pour tester la simple visite
+        Object.assign(others[0], { pos: 10, jail: { in: true, turns: 0, heavy: false } });
       }
       if (op === 'fight') {
         // envoie le joueur et un bot au goulag pour tester le duel
