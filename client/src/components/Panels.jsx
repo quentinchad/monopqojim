@@ -7,14 +7,16 @@ import { flagSvg } from '../flags.js';
 import { TradeSummary } from './TradeModal.jsx';
 import { openTradeOffer } from './TradeOfferModal.jsx';
 
-export function PlayersPanel({ state, me, onTrade }) {
+export function PlayersPanel({ state, me, onTrade, onHover, hoverPid }) {
   return (
     <div className="players-panel">
       {state.players.map((p) => {
         const isTurn = state.turn?.pid === p.id && state.phase === 'playing';
         const owned = Object.keys(state.props).map(Number).filter((i) => state.props[i].owner === p.id);
         return (
-          <div key={p.id} className={`player-row ${isTurn ? 'turn' : ''} status-${p.status}`} style={{ '--pc': p.color }}>
+          <div key={p.id} className={`player-row ${isTurn ? 'turn' : ''} ${hoverPid === p.id ? 'hovered' : ''} status-${p.status}`} style={{ '--pc': p.color }}
+            onMouseEnter={() => onHover?.(p.id)} onMouseLeave={() => onHover?.(null)}
+            title={owned.length ? 'Ses propriétés sont mises en évidence sur le plateau' : undefined}>
             <Avatar state={state} p={p} />
             <div className="pinfo">
               <div className="pname">

@@ -116,6 +116,7 @@ export default function Game({ state, me, onLeave }) {
   const boardWrap = useRef(null);
   const { w, h } = useElementSize(boardWrap);
   const [positions, animating] = useAnimatedPositions(state.players);
+  const [hoverPid, setHoverPid] = useState(null); // joueur survolé dans la liste
   const [event, nextEvent, cinematicQueued] = useEventQueue(state.events, animating);
   const size = Math.max(320, Math.min(w, h) - 16);
 
@@ -134,6 +135,13 @@ export default function Game({ state, me, onLeave }) {
   if (pend?.type === 'buy') highlights[pend.cell] = 'focus';
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
+  // survol d'un joueur dans la liste : ses propriétés s'illuminent, le reste du plateau s'assombrit
+  if (hoverPid) {
+    for (let i = 0; i < 40; i++) {
+      if (highlights[i]) continue;
+      highlights[i] = state.props[i]?.owner === hoverPid ? 'spot' : 'dim';
+    }
+  }
   // la cinématique remplace la bannière pour les détournements
   const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag', 'jailVisit'].includes(event?.type) ? event : null;
   // la carte que je dois valider est déjà affichée au centre, avec son bouton
@@ -197,7 +205,7 @@ export default function Game({ state, me, onLeave }) {
       </main>
 
       <aside className="side right">
-        <PlayersPanel state={shownState} me={me} onTrade={(id) => setTrade(id)} />
+        <PlayersPanel state={shownState} me={me} onTrade={(id) => setTrade(id)} onHover={setHoverPid} hoverPid={hoverPid} />
         {playerById(state, me)?.status === 'alive' && state.phase === 'playing' && (
           <button className="btn wide" onClick={() => setTrade(true)}>🤝 Proposer un échange</button>
         )}

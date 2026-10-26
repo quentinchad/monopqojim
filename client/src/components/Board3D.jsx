@@ -473,7 +473,10 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         }
         c.side.color.set(hl === 'target' || hl === 'boom' ? '#ef4444' : owner ? owner.color : w.pal.cellSide);
         c.side.emissive.set(owner ? owner.color : '#000000');
-        c.side.emissiveIntensity = owner ? 0.35 : 0;
+        c.side.emissiveIntensity = hl === 'spot' ? 1.4 : hl === 'dim' ? 0 : owner ? 0.35 : 0;
+        // survol d'un joueur : ses cases se soulèvent et brillent, les autres s'assombrissent
+        c.mesh.material[2].color.set(hl === 'dim' ? '#4b4b55' : '#ffffff');
+        c.group.position.y = CELL_H / 2 + (hl === 'spot' ? 0.12 : 0);
         // pendant la cinématique, les bâtiments visés restent debout jusqu'à l'impact
         const n = w.cineHotel === c.cell.index ? w.cineHouses : prop?.houses || 0;
         if (n !== c.houseCount) { buildHouses(c.houses, n, c.depth, c.houseCount >= 0 && n > c.houseCount); c.houseCount = n; }
