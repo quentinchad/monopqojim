@@ -104,7 +104,7 @@ function simulateGame(count = 4) {
   return shortest;
 }
 
-function useLocalFight(active, withHuman) {
+function useLocalFight(active, withHuman, onEnd) {
   const [handle, setHandle] = useState(null);
   useEffect(() => {
     if (!active) return;
@@ -114,7 +114,7 @@ function useLocalFight(active, withHuman) {
       : [{ id: 'tokyo', isBot: true, connected: true }, { id: 'berlin', isBot: true, connected: true }];
     const fight = new Fight(players, {
       onTick: (s) => subs.forEach((fn) => fn(s)),
-      onEnd: () => {},
+      onEnd: () => onEnd?.(), // comme en partie : retour automatique une fois le duel fini
     });
     setHandle({
       key: Math.random(),
@@ -147,7 +147,7 @@ export default function Demo() {
   const bannerIdx = useRef(0);
   const [boardState, setBoardState] = useState(() => makeDemoState(null));
   const [positions] = useAnimatedPositions(boardState.players);
-  const fight = useLocalFight(!!fightMode, fightMode === 'human');
+  const fight = useLocalFight(!!fightMode, fightMode === 'human', () => setFightMode(null));
 
   const hijackState = useMemo(() => makeDemoState(hijack?.cell), [hijack?.id]);
 

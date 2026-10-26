@@ -23,7 +23,7 @@ const BULLET_R = 5;
 export const INTRO = 13; // staredown puis entrée dans l'arène (cinématique chez les joueurs)
 const COUNTDOWN = 3.5;
 const DURATION = 60;
-const OVER_DELAY = 5;
+export const OVER_DELAY = 5; // après la mort, retour automatique à la partie
 const DASH_COOLDOWN = 1.3;
 const DASH_TIME = 0.16;
 
@@ -356,7 +356,8 @@ export class Fight {
       winner: this.winner,
       timeLeft: this.phase === 'fight' ? Math.max(0, DURATION - this.time)
         : this.phase === 'countdown' ? COUNTDOWN - this.time
-          : this.phase === 'intro' ? INTRO - this.time : 0,
+          : this.phase === 'intro' ? INTRO - this.time
+            : this.phase === 'over' ? Math.max(0, OVER_DELAY - this.time) : 0,
       fighters: this.fighters.map((f) => ({
         id: f.id, x: Math.round(f.x), y: Math.round(f.y), hp: Math.round(f.hp),
         angle: +f.angle.toFixed(2), dash: f.dashT > 0, dashCd: +f.dashCd.toFixed(2), hit: f.hitFlash > 0,

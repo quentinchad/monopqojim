@@ -19,7 +19,16 @@ const SENS = 0.0024;
 
 const hpColor = (hp) => (hp > 50 ? '#16a34a' : hp > 25 ? '#d97706' : '#dc2626');
 
-export default function FightOverlay({ state, me, source = socketSource, onClose }) {
+// Le serveur ferme le duel quelques secondes après la mort ; si son message se perd, on se retire quand même.
+const OVER_FALLBACK = 8;
+
+export default function FightOverlay(props) {
+  const [gone, setGone] = useState(false);
+  if (gone) return null;
+  return <FightView {...props} onDone={() => { setGone(true); props.onClose?.(); }} />;
+}
+
+function FightView({ state, me, source = socketSource, onClose, onDone }) {
   const meta = state.fight;
   const stageRef = useRef(null);
   const introRef = useRef(null);
@@ -84,6 +93,15 @@ export default function FightOverlay({ state, me, source = socketSource, onClose
       }
     });
   }, [source]);
+
+  // ---------- retour automatique à la partie une fois le duel fini ----------
+  const over = hud?.phase === 'over';
+  useEffect(() => {
+    if (!over) return undefined;
+    if (document.pointerLockElement) document.exitPointerLock();
+    const t = setTimeout(onDone, OVER_FALLBACK * 1000);
+    return () => clearTimeout(t);
+  }, [over]);
 
   // ---------- arène 3D ----------
   useEffect(() => {
@@ -260,6 +278,7 @@ export default function FightOverlay({ state, me, source = socketSource, onClose
         <div className="fight-over">
           <div className="fo-title">EXÉCUTÉ</div>
           <div className="fo-sub" style={{ color: winner?.color }}>{winner?.name} sort vivant du goulag</div>
+          <div className="fo-back">Retour à la partie dans {Math.max(1, Math.ceil(hud.timeLeft || 0))} s…</div>
         </div>
       )}
 
