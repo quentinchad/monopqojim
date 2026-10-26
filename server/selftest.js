@@ -232,3 +232,33 @@ console.log('parties', games, stats);
   game.destroy();
   console.log('simple visite : vol des prisonniers OK');
 }
+
+// Pause : la moitié des joueurs humains connectés doit voter, pour mettre en pause comme pour reprendre
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('P');
+  const a = game.addPlayer({ name: 'A', token: 'a' });
+  const b = game.addPlayer({ name: 'B', token: 'b' });
+  const c = game.addPlayer({ name: 'C', token: 'c' });
+  game.addPlayer({ name: 'D', token: 'd' });
+  game.start(a.id);
+  const cur = game.player(game.turn.pid);
+  game.handle(a.id, { type: 'votePause' });
+  assert(!game.paused, 'un vote sur quatre ne suffit pas');
+  game.handle(b.id, { type: 'votePause' });
+  assert(game.paused && game.publicState().pause.on, 'deux votes sur quatre : pause');
+  let refused = false;
+  try { game.handle(cur.id, { type: 'roll' }); } catch { refused = true; }
+  assert(refused, 'aucune action pendant la pause');
+  game.handle(c.id, { type: 'votePause' });
+  assert(game.paused, 'un vote ne suffit pas pour reprendre');
+  game.handle(c.id, { type: 'votePause', on: false });
+  assert(game.pause.votes.size === 0, 'vote retiré');
+  game.handle(a.id, { type: 'votePause' });
+  game.markDisconnected(b);
+  game.markDisconnected(c);
+  game.markDisconnected(game.players.find((p) => p.name === 'D'));
+  assert(!game.paused, 'les déconnectés ne comptent plus : le vote restant suffit pour reprendre');
+  game.destroy();
+  console.log('pause par vote OK');
+}

@@ -486,6 +486,7 @@ export function eventSound(type) {
     card: sfx.card, traffic: sfx.traffic, pot: sfx.pot, swap: sfx.swap, goulag: sfx.goulag,
     fight: sfx.fightStart, goulagWin: sfx.goulagWin, bankrupt: sfx.bankrupt, win: sfx.win,
     trade: sfx.tradeDone, disconnect: sfx.disconnect, reconnect: sfx.reconnect, jail: sfx.refuse,
+    pause: () => tone({ f: 523, f2: 330, dur: 0.35, type: 'triangle', vol: 0.12 }), resume: sfx.chime,
   }[type];
   fn?.();
 }

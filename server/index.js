@@ -60,7 +60,7 @@ function broadcast(game) {
 }
 
 function scheduleBots(game) {
-  if (game.botTimer || game.phase !== 'playing') return;
+  if (game.botTimer || game.phase !== 'playing' || game.paused) return;
   // la partie se met en pause si plus aucun humain n'est connecté
   if (!game.players.some((p) => !p.isBot && p.connected)) return;
   game.botTimer = setTimeout(() => {
@@ -219,7 +219,8 @@ setInterval(() => {
       rooms.delete(id);
       continue;
     }
-    game.checkDisconnections(3000, humans > 0);
+    // en pause, le délai avant l'abandon d'un joueur déconnecté est suspendu
+    game.checkDisconnections(3000, humans > 0 && !game.paused);
     scheduleBots(game);
   }
 }, 3000);

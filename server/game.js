@@ -55,6 +55,8 @@ export class Game {
     this.pot = 0;
     this.winner = null;
     this.fight = null;
+    this.paused = false;
+    this.pause = { votes: new Set(), since: null };
     this.decks = { chance: [], chest: [] };
     this.createdAt = Date.now();
     this.version = 0;
@@ -271,6 +273,8 @@ export class Game {
     const a = action || {};
     if (a.type === 'chat') return this.addChat(pid, a.text);
     if (this.phase !== 'playing') fail('La partie n’est pas en cours');
+    if (a.type === 'votePause') return this.actVotePause(p, a.on !== false);
+    if (this.paused) fail('La partie est en pause');
     if (a.type === 'extendTimeout') return this.actExtendTimeout(p, a.playerId);
     if (this.fight && a.type !== 'fightInput') fail('Un combat du goulag est en cours…');
     switch (a.type) {
@@ -1003,6 +1007,8 @@ export class Game {
     const alive = this.alive;
     if (alive.length > 1) return false;
     this.phase = 'ended';
+    this.paused = false;
+    this.pause = { votes: new Set(), since: null };
     this.winner = alive[0]?.id || null;
     if (this.stats) { this.stats.endedAt = Date.now(); this.snapshot(); }
     for (const p of this.players) if (p.status === 'goulag') p.status = 'eliminated';
@@ -1018,7 +1024,7 @@ export class Game {
   }
 
   checkGoulag() {
-    if (this.fight || this.phase !== 'playing') return;
+    if (this.fight || this.phase !== 'playing' || this.paused) return;
     const wait = (this.fightNotBefore || 0) - Date.now();
     if (wait > 0) {
       clearTimeout(this.goulagTimer);
@@ -1152,6 +1158,69 @@ export class Game {
     if (this.phase === 'playing' && !p.isBot && p.status !== 'eliminated' && !p.botControlled) {
       p.abandonAt = Date.now() + this.settings.abandonDelay * 1000;
     }
+    if (this.phase === 'playing') this.checkPauseVotes();
+  }
+
+  // ---------- pause ----------
+  // Votent les joueurs humains connectés encore en jeu ; il faut la moitié d'entre eux pour mettre en pause,
+  // puis de nouveau la moitié pour reprendre.
+  pauseVoters() {
+    return this.players.filter((p) => !p.isBot && p.connected && p.status !== 'eliminated');
+  }
+
+  pauseNeeded() {
+    return Math.max(1, Math.ceil(this.pauseVoters().length / 2));
+  }
+
+  actVotePause(p, on) {
+    if (p.isBot || p.status === 'eliminated') fail('Seuls les joueurs encore en jeu peuvent voter');
+    if (on) this.pause.votes.add(p.id);
+    else this.pause.votes.delete(p.id);
+    if (!this.checkPauseVotes() && on) {
+      this.addLog(`${p.name} vote pour ${this.paused ? 'reprendre la partie' : 'mettre la partie en pause'} (${this.pause.votes.size}/${this.pauseNeeded()})`, p.id);
+    }
+    this.changed();
+  }
+
+  // bascule pause / reprise quand assez de joueurs ont voté ; renvoie vrai si c'est arrivé
+  checkPauseVotes() {
+    const ids = new Set(this.pauseVoters().map((p) => p.id));
+    for (const id of this.pause.votes) if (!ids.has(id)) this.pause.votes.delete(id);
+    if (!this.pause.votes.size || this.pause.votes.size < this.pauseNeeded()) return false;
+    if (this.paused) this.resumeGame();
+    else this.pauseGame();
+    return true;
+  }
+
+  pauseGame() {
+    this.paused = true;
+    this.pause = { votes: new Set(), since: Date.now() };
+    // tout se fige : enchère en cours, duel du goulag, minuteurs
+    if (this.auction) {
+      this.auction.pausedLeft = Math.max(0, this.auction.endsAt - Date.now());
+      clearTimeout(this.auctionTimer);
+    }
+    if (this.fight) this.fight.paused = true;
+    clearTimeout(this.goulagTimer);
+    this.addLog('⏸️ Partie mise en pause');
+    this.addEvent('pause', { text: '⏸️ Partie en pause' });
+  }
+
+  resumeGame() {
+    const pausedFor = Date.now() - (this.pause.since || Date.now());
+    this.paused = false;
+    this.pause = { votes: new Set(), since: null };
+    if (this.auction) {
+      this.auction.endsAt = Date.now() + (this.auction.pausedLeft ?? 0);
+      delete this.auction.pausedLeft;
+      this.scheduleAuctionEnd();
+    }
+    if (this.fight) this.fight.paused = false;
+    if (this.fightNotBefore) this.fightNotBefore += pausedFor;
+    this.animUntil = Math.max(this.animUntil || 0, Date.now() + 1000);
+    this.addLog('▶️ La partie reprend');
+    this.addEvent('resume', { text: '▶️ La partie reprend' });
+    this.checkGoulag();
   }
 
   // Joueur qui revient : par son jeton, ou à défaut par son pseudo s'il a changé d'appareil / d'onglet
@@ -1239,7 +1308,8 @@ export class Game {
       })),
       props: this.props,
       turn: this.turn,
-      auction: this.auction && { ...this.auction, after: undefined, remaining: Math.max(0, this.auction.endsAt - Date.now()) },
+      auction: this.auction && { ...this.auction, after: undefined, remaining: this.auction.pausedLeft ?? Math.max(0, this.auction.endsAt - Date.now()) },
+      pause: { on: this.paused, votes: [...this.pause.votes], needed: this.pauseNeeded(), since: this.pause.since },
       trades: this.trades,
       log: this.log.slice(-80),
       chat: this.chat.slice(-60),

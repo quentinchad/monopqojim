@@ -10,6 +10,7 @@ import TradeOfferModal from './TradeOfferModal.jsx';
 import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
+import { PauseButton, PauseOverlay } from './PauseControls.jsx';
 import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { BUSTED_DURATION } from '../busted.js';
@@ -163,12 +164,14 @@ export default function Game({ state, me, onLeave }) {
         </div>
         <ThemePicker />
         <SoundToggle />
+        <PauseButton state={state} me={me} />
         <LogChat state={state} me={me} />
       </aside>
 
       <main className="board-area" ref={boardWrap}>
         <button className="btn tiny toggle-left" onClick={() => setLeftOpen((v) => !v)}>{leftOpen ? '⟨' : '⟩'}</button>
         <DisconnectBanner state={state} me={me} />
+        <PauseOverlay state={state} me={me} />
         {w > 0 && (view === '2d' ? (
           <Board2D state={state} size={size} positions={positions} onCellClick={setSelected} highlights={highlights}>
             {controls}

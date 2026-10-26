@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { buildBuilding3D } from '../buildings.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BOARD, COUNTRIES } from '../../../shared/board.js';
 import { cellRect, cellCenter, tokenOffset, TOTAL } from '../layout.js';
@@ -194,37 +195,18 @@ function makePawn(color) {
   return g;
 }
 
-const houseGeo = new THREE.BoxGeometry(0.15, 0.13, 0.15);
-const roofGeo = new THREE.ConeGeometry(0.13, 0.1, 4);
-const hotelGeo = new THREE.BoxGeometry(0.5, 0.2, 0.22);
-const hotelRoofGeo = new THREE.ConeGeometry(0.3, 0.12, 4);
-const houseMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 });
-const roofMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.6 });
-const hotelMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.45 });
-const hotelRoofMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 });
 
-function buildHouses(group, n, depth) {
+// Un seul bâtiment par ville, qui grandit à chaque construction (maisonnette → hôtel)
+const BUILDING_SCALE = 1.2;
+function buildHouses(group, n, depth, animate) {
   while (group.children.length) group.remove(group.children[0]);
-  const z = -depth / 2 + 0.2;
-  if (n === 5) {
-    const b = new THREE.Mesh(hotelGeo, hotelMat);
-    b.position.set(0, CELL_H / 2 + 0.1, z);
-    const r = new THREE.Mesh(hotelRoofGeo, hotelRoofMat);
-    r.position.set(0, CELL_H / 2 + 0.26, z);
-    r.rotation.y = Math.PI / 4;
-    r.scale.set(1, 1, 0.45);
-    for (const m of [b, r]) { m.castShadow = true; group.add(m); }
-    return;
-  }
-  for (let k = 0; k < n; k++) {
-    const x = -0.33 + k * 0.22;
-    const b = new THREE.Mesh(houseGeo, houseMat);
-    b.position.set(x, CELL_H / 2 + 0.065, z);
-    const r = new THREE.Mesh(roofGeo, roofMat);
-    r.position.set(x, CELL_H / 2 + 0.18, z);
-    r.rotation.y = Math.PI / 4;
-    for (const m of [b, r]) { m.castShadow = true; group.add(m); }
-  }
+  if (!n) return;
+  const b = buildBuilding3D(n);
+  b.position.set(0, CELL_H / 2, -depth / 2 + 0.21);
+  group.add(b);
+  // le nouveau bâtiment sort de terre en rebondissant
+  group.userData.grow = animate ? 0 : 1;
+  b.scale.setScalar(animate ? 0.01 : BUILDING_SCALE);
 }
 
 const ORBIT_CAMERA = new THREE.Vector3(0, 15.5, 12.5);
@@ -376,6 +358,14 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       const rawDt = clock.getDelta();
       const dt = Math.min(0.05, rawDt);
       w.t += dt;
+      for (const c of w.cells) {
+        const h = c.houses;
+        if (h.userData.grow < 1 && h.children[0]) {
+          h.userData.grow = Math.min(1, h.userData.grow + dt * 2.2);
+          const k = h.userData.grow;
+          h.children[0].scale.setScalar(BUILDING_SCALE * (0.01 + (1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2) * 0.99)); // easeOutBack
+        }
+      }
       const tokF = w.mode === 'fps' && w.tokens.get(w.followId);
       if (w.cine) {
         // la cinématique pilote la caméra
@@ -486,7 +476,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         c.side.emissiveIntensity = owner ? 0.35 : 0;
         // pendant la cinématique, les bâtiments visés restent debout jusqu'à l'impact
         const n = w.cineHotel === c.cell.index ? w.cineHouses : prop?.houses || 0;
-        if (n !== c.houseCount) { c.houseCount = n; buildHouses(c.houses, n, c.depth); }
+        if (n !== c.houseCount) { buildHouses(c.houses, n, c.depth, c.houseCount >= 0 && n > c.houseCount); c.houseCount = n; }
       }
     };
     w.refresh = refresh;

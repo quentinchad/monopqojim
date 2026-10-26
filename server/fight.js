@@ -338,6 +338,8 @@ export class Fight {
   }
 
   loop() {
+    // partie en pause : le duel est figé (le temps écoulé n'est pas rattrapé à la reprise)
+    if (this.paused) { this.last = Date.now(); return; }
     const due = Math.min(30, Math.max(1, Math.floor((Date.now() - this.last) / TICK)));
     this.last = Math.max(this.last + due * TICK, Date.now() - TICK * 30);
     for (let i = 0; i < due && !this.stopped; i++) {

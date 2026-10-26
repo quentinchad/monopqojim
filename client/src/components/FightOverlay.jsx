@@ -103,6 +103,11 @@ function FightView({ state, me, source = socketSource, onClose, onDone }) {
     return () => clearTimeout(t);
   }, [over]);
 
+  // partie mise en pause : on rend la souris
+  useEffect(() => {
+    if (state.pause?.on && document.pointerLockElement) document.exitPointerLock();
+  }, [state.pause?.on]);
+
   // ---------- arène 3D ----------
   useEffect(() => {
     const stage = stageRef.current;
@@ -309,6 +314,7 @@ function FightView({ state, me, source = socketSource, onClose, onDone }) {
         </div>
       )}
 
+      {state.pause?.on && <div className="fight-paused">⏸️ Partie en pause — le duel reprendra au vote</div>}
       {onClose && <button className="btn tiny ghost fight-close" onClick={close}>✕ Fermer</button>}
       {hud?.phase !== 'intro' && (
         <div className="fight-help">

@@ -20,6 +20,7 @@ import { randomBotSkin } from '../../../shared/characters.js';
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
 const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
+const Board3D = lazy(() => import('./Board3D.jsx'));
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 
@@ -148,6 +149,14 @@ export default function Demo() {
   const [casino, setCasino] = useState(null); // { money, spins, last }
   const bannerIdx = useRef(0);
   const [boardState, setBoardState] = useState(() => makeDemoState(null));
+  const [boardView, setBoardView] = useState('2d');
+  // constructions du plateau de démo : tous les niveaux mélangés, ou le même niveau partout
+  const setBuildings = (level) => setBoardState((st) => ({
+    ...st,
+    props: Object.fromEntries(Object.entries(st.props).map(([i, pr]) => [i, BOARD[i].type === 'city'
+      ? { ...pr, houses: level === 'mix' ? (Number(i) % 5) + 1 : level === 'up' ? (pr.houses % 5) + 1 : level }
+      : pr])),
+  }));
   const [positions] = useAnimatedPositions(boardState.players);
   const fight = useLocalFight(!!fightMode, fightMode === 'human', () => setFightMode(null));
 
@@ -303,6 +312,21 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🏘️ Constructions sur le plateau</h3>
+          <p className="muted">Un seul bâtiment par ville, qui grandit à chaque construction : maisonnette, maison, villa, manoir, puis hôtel.</p>
+          <div className="row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            <button className={`btn ${boardView === '2d' ? 'primary' : ''}`} onClick={() => setBoardView('2d')}>Plateau 2D</button>
+            <button className={`btn ${boardView === '3d' ? 'primary' : ''}`} onClick={() => setBoardView('3d')}>Vue 3D</button>
+          </div>
+          <div className="row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => setBuildings('mix')}>🎨 Tous les niveaux</button>
+            <button className="btn" onClick={() => setBuildings('up')}>⬆️ Construire partout</button>
+            {[1, 2, 3, 4, 5].map((n) => <button key={n} className="btn tiny" onClick={() => setBuildings(n)}>{n === 5 ? '🏨' : n}</button>)}
+            <button className="btn tiny" onClick={() => setBuildings(0)}>Raser</button>
+          </div>
+        </section>
+
+        <section className="panel">
           <h3>🎲 Dés et déplacement</h3>
           <p className="muted">Les dés roulent, puis le pion avance case par case.</p>
           <button className="btn primary" onClick={roll}>🎲 Lancer les dés</button>
@@ -310,12 +334,20 @@ export default function Demo() {
       </div>
 
       <div className="demo-board">
-        <Board2D state={boardState} size={Math.min(640, window.innerWidth - 32)} positions={positions} onCellClick={() => {}}>
-          <div className="center-controls">
-            <Dice turn={boardState.turn} />
+        {boardView === '3d' ? (
+          <div className="board3d-wrap" style={{ width: Math.min(640, window.innerWidth - 32), height: Math.min(640, window.innerWidth - 32) }}>
+            <Suspense fallback={<div className="loading3d">Chargement de la 3D…</div>}>
+              <Board3D state={{ ...boardState, id: 'DEMO' }} positions={positions} onCellClick={() => {}} highlights={{}} />
+            </Suspense>
           </div>
-          <EventBanner event={banner} state={boardState} onClose={() => setBanner(null)} />
-        </Board2D>
+        ) : (
+          <Board2D state={boardState} size={Math.min(640, window.innerWidth - 32)} positions={positions} onCellClick={() => {}}>
+            <div className="center-controls">
+              <Dice turn={boardState.turn} />
+            </div>
+            <EventBanner event={banner} state={boardState} onClose={() => setBanner(null)} />
+          </Board2D>
+        )}
       </div>
 
       {statsState && <EndGameStats state={statsState} onClose={() => setStatsState(null)} />}

@@ -4,13 +4,14 @@ import { cellRect, cellCenter, pct, tokenOffset, CORNER, TOTAL } from '../layout
 import { flagSvg } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { skinUrl, skinBackground } from '../skin3d.js';
+import { buildingSvg, BUILDING_NAMES } from '../buildings.js';
 
 const ICONS = { chance: '❓', chest: '📦', tax: '💸', airport: '✈️', casino: '🎰' };
 
+// Un seul bâtiment qui grandit : maisonnette, maison, villa, manoir, puis hôtel
 function Houses({ n }) {
   if (!n) return null;
-  if (n === 5) return <span className="houses"><i className="hotel" /></span>;
-  return <span className="houses">{Array.from({ length: n }, (_, k) => <i key={k} className="house" />)}</span>;
+  return <span key={n} className={`building lvl-${n}`} title={BUILDING_NAMES[n]} dangerouslySetInnerHTML={{ __html: buildingSvg(n) }} />;
 }
 
 function CellContent({ cell, state }) {
@@ -27,10 +28,10 @@ function CellContent({ cell, state }) {
         <>
           <div className="band" style={{ background: c.color }}>
             <span className="flag" dangerouslySetInnerHTML={{ __html: flagSvg(c.code) }} />
-            <Houses n={prop?.houses} />
           </div>
           <div className="cbody">
             <div className="cname">{cell.name}</div>
+            <Houses n={prop?.houses} />
             {priceLine}
           </div>
         </>

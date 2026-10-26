@@ -70,7 +70,7 @@ function tryBuild(game, p) {
 
 // Effectue au plus une action pour un joueur contrôlé par l'IA. Retourne true si quelque chose a été fait.
 export function botStep(game) {
-  if (game.phase !== 'playing' || game.fight) return false;
+  if (game.phase !== 'playing' || game.fight || game.paused) return false;
   const bots = game.players.filter((p) => p.status === 'alive' && isAI(game, p));
   if (!bots.length) return false;
 
