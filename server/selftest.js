@@ -178,3 +178,28 @@ console.log('parties', games, stats);
   void b;
   console.log('déconnexion / bot / retour OK');
 }
+
+// Faillite : le créancier ne récupère que l'argent, les propriétés reviennent à la banque
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('B');
+  game.goulagCinematicMs = 0;
+  const a = game.addPlayer({ name: 'A', token: 'a' });
+  game.addPlayer({ name: 'B', token: 'b' });
+  game.addPlayer({ name: 'C', token: 'c' });
+  game.start(a.id);
+  const [p, creditor] = game.players;
+  Object.assign(game.props[1], { owner: p.id, houses: 2 });
+  Object.assign(game.props[3], { owner: p.id, houses: 2 });
+  game.props[5].owner = p.id;
+  p.jailCards = ['c_jailfree'];
+  p.money = -40;
+  p.debtCreditor = creditor.id;
+  const before = creditor.money;
+  game.bankrupt(p);
+  assert(!game.props[1].owner && !game.props[3].owner && !game.props[5].owner, 'propriétés à la banque');
+  assert(creditor.money === before + 60, 'le créancier récupère l’argent (bâtiments revendus 100 $ - dette 40 $)');
+  assert(creditor.jailCards.length === 0 && game.decks.chance.includes('c_jailfree'), 'cartes rendues au paquet');
+  game.destroy();
+  console.log('faillite : argent seul au créancier OK');
+}

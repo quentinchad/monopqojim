@@ -275,6 +275,38 @@ export const sfx = {
     noise({ dur: 3.2, vol: 0.22, type: 'bandpass', f: 1400, f2: 900, q: 0.5, attack: 0.4 });
     for (let i = 0; i < 18; i++) noise({ at: Math.random() * 2.5, dur: 0.06, vol: 0.12, type: 'highpass', f: 3500 }); // applaudissements
   },
+  // ---------- duel à mort du goulag ----------
+  shotgun() {
+    noise({ dur: 0.35, vol: 0.9, type: 'lowpass', f: 2600, f2: 200 });
+    tone({ f: 90, f2: 40, dur: 0.3, vol: 0.6 });
+    noise({ at: 0.02, dur: 0.12, vol: 0.4, type: 'highpass', f: 3000 });
+  },
+  swish() { noise({ dur: 0.16, vol: 0.35, type: 'bandpass', f: 900, f2: 3800, q: 2, attack: 0.04 }); },
+  slash() {
+    // lame dans la chair : déchirure humide puis impact sourd
+    noise({ dur: 0.18, vol: 0.6, type: 'bandpass', f: 700, f2: 250, q: 1.4 });
+    noise({ at: 0.03, dur: 0.25, vol: 0.4, type: 'lowpass', f: 500 });
+    tone({ at: 0.02, f: 120, f2: 55, dur: 0.18, vol: 0.45 });
+  },
+  gore() {
+    for (let i = 0; i < 6; i++) noise({ at: i * 0.05, dur: 0.12, vol: 0.5, type: 'lowpass', f: 400 + Math.random() * 300 });
+    tone({ f: 70, f2: 30, dur: 0.6, vol: 0.7 });
+  },
+  scream() {
+    // cri bref : voix rauque qui retombe
+    tone({ f: 520, f2: 260, dur: 0.7, type: 'sawtooth', vol: 0.12, lp: 1800, attack: 0.03 });
+    tone({ f: 780, f2: 380, dur: 0.6, type: 'sawtooth', vol: 0.06, lp: 2400, attack: 0.03 });
+    noise({ dur: 0.6, vol: 0.12, type: 'bandpass', f: 1200, f2: 600, q: 3, attack: 0.03 });
+  },
+  ricochet() { tone({ f: 2400, f2: 900, dur: 0.18, type: 'triangle', vol: 0.05 }); },
+  cock() {
+    noise({ dur: 0.05, vol: 0.4, type: 'bandpass', f: 1800, q: 4 });
+    noise({ at: 0.14, dur: 0.06, vol: 0.45, type: 'bandpass', f: 1300, q: 4 });
+  },
+  heartbeat() {
+    tone({ f: 60, f2: 38, dur: 0.14, vol: 0.5 });
+    tone({ at: 0.16, f: 52, f2: 34, dur: 0.12, vol: 0.35 });
+  },
   gong() { for (const m of [1, 2.4, 3.9, 5.2]) tone({ f: 130 * m, dur: 2.2 / m + 0.4, vol: 0.12 / m, attack: 0.01 }); },
 };
 
@@ -356,6 +388,37 @@ export function goulagSound({ walk = [1.4, 9.0], guards = 5.2, door = 10.2, dura
   noise({ out, at: door + 0.5, dur: 1.6, vol: 0.9, type: 'lowpass', f: 1200, f2: 80 });
   tone({ out, at: door + 0.5, f: 70, f2: 35, dur: 1.4, vol: 0.7 });
   for (const m of [1, 2.7, 4.1]) tone({ out, at: door + 0.5, f: 110 * m, dur: 1.2, vol: 0.06 / m });
+  return b;
+}
+
+// Avant le duel : rumeur de la foule et crépitement des flashs au face-à-face, puis grosses caisses pendant les entrées
+export function duelIntroSound({ from = 0, walkA = 6.5, walkB = 9.75, duration = 13 } = {}) {
+  const b = bus();
+  const out = b.out;
+  if (!out) return b;
+  const rest = Math.max(0.5, duration - from);
+  const at = (t) => t - from;
+  // foule : nappe de bruit qui gronde, plus fort aux entrées
+  drone({ out, dur: rest, vol: 0.2, type: 'bandpass', q: 0.4, points: [[0, 900, 0.3], [Math.max(0.1, at(walkA)), 1100, 0.7], [Math.max(0.2, at(walkB)), 1200, 0.9], [rest - 0.3, 1000, 0.8], [rest, 1000, 0]] });
+  for (const f of [49, 73.4]) drone({ out, osc: 'sawtooth', dur: rest, vol: 0.05, type: 'lowpass', points: [[0, f, 0.3], [rest - 0.4, f, 1], [rest, f, 0]] });
+  // flashs des photographes
+  for (let t = 0.3; t < walkA; t += 0.12 + Math.random() * 0.35) {
+    if (t < from) continue;
+    noise({ out, at: at(t), dur: 0.03, vol: 0.18, type: 'highpass', f: 4000 });
+    tone({ out, at: at(t) + 0.02, f: 3200, f2: 1800, dur: 0.05, type: 'triangle', vol: 0.02 });
+  }
+  // coup sourd quand ils se collent front contre front
+  if (from < 4.8) { tone({ out, at: at(4.8), f: 70, f2: 35, dur: 1, vol: 0.6 }); noise({ out, at: at(4.8), dur: 0.5, vol: 0.4, type: 'lowpass', f: 500 }); }
+  // tambours de guerre pendant les entrées
+  for (const start of [walkA, walkB]) {
+    for (let t = start; t < start + 3.2; t += 0.4) {
+      if (t < from) continue;
+      tone({ out, at: at(t), f: 75, f2: 42, dur: 0.22, vol: 0.5 });
+      noise({ out, at: at(t), dur: 0.08, vol: 0.2, type: 'lowpass', f: 400 });
+      if (Math.round((t - start) / 0.4) % 4 === 3) noise({ out, at: at(t) + 0.2, dur: 0.12, vol: 0.18, type: 'bandpass', f: 1800 });
+    }
+    if (start >= from) for (let i = 0; i < 14; i++) noise({ out, at: at(start) + Math.random() * 2.5, dur: 0.06, vol: 0.1, type: 'highpass', f: 3500 });
+  }
   return b;
 }
 

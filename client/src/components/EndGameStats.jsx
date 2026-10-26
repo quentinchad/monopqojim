@@ -60,8 +60,9 @@ function NetWorthChart({ history, players }) {
   }
 
   const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - r.left;
+    // position dans le repère du SVG entier (la zone survolée commence déjà après la marge gauche)
+    const r = e.currentTarget.ownerSVGElement.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
     const turn = t0 + ((px - m.l) / iw) * (t1 - t0);
     let best = 0;
     for (let i = 1; i < history.length; i++) if (Math.abs(history[i].turn - turn) < Math.abs(history[best].turn - turn)) best = i;

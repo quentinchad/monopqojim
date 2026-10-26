@@ -933,20 +933,19 @@ export class Game {
   bankrupt(p) {
     const creditor = p.debtCreditor ? this.player(p.debtCreditor) : null;
     const toPlayer = creditor && creditor.status === 'alive' ? creditor : null;
+    // les bâtiments sont revendus à la banque (moitié du prix) et les propriétés lui reviennent, libres à l'achat ;
+    // le créancier éventuel ne récupère que l'argent du joueur ruiné, rien d'autre
     const owned = Object.keys(this.props).filter((i) => this.props[i].owner === p.id).map(Number);
     for (const i of owned) {
       const prop = this.props[i];
       p.money += (prop.houses * housePrice(BOARD[i])) / 2;
       prop.houses = 0;
-      if (toPlayer) prop.owner = toPlayer.id;
-      else prop.owner = null;
+      prop.owner = null;
     }
-    if (toPlayer) {
-      if (p.money > 0) toPlayer.money += p.money;
-      toPlayer.jailCards.push(...p.jailCards);
-    } else {
-      for (const id of p.jailCards) this.decks[id.startsWith('c_') ? 'chance' : 'chest'].push(id);
-    }
+    this.cancelTradesWithProps(owned);
+    const paid = toPlayer ? Math.max(0, Math.round(p.money)) : 0;
+    if (paid) toPlayer.money += paid;
+    for (const id of p.jailCards) this.decks[id.startsWith('c_') ? 'chance' : 'chest'].push(id);
     p.jailCards = [];
     p.money = 0;
     p.trafficking = false;
@@ -956,7 +955,7 @@ export class Game {
     if (this.auction?.bidder === p.id) { this.auction.bidder = null; this.auction.bid = 0; }
 
     this.st(p).outTurn = this.stats?.turns ?? null;
-    this.addLog(`💀 ${p.name} fait faillite${toPlayer ? ` au profit de ${toPlayer.name}` : ''}`, p.id);
+    this.addLog(`💀 ${p.name} fait faillite${toPlayer ? ` : ${toPlayer.name} récupère ${paid} $, ses propriétés retournent à la banque` : ' : ses propriétés retournent à la banque'}`, p.id);
     // en finale (il ne reste qu'un autre joueur), la faillite termine la partie : pas de goulag ni de cinématique
     const othersAlive = this.alive.filter((x) => x.id !== p.id).length;
     if (this.settings.goulag && !p.usedGoulag && othersAlive > 1) {

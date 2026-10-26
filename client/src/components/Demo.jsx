@@ -182,8 +182,11 @@ export default function Demo() {
     });
   }
 
+  // les bots du duel reçoivent un personnage au hasard, comme en partie
+  const fightSkins = useMemo(() => ({ tokyo: { ...randomBotSkin(), v: 1 }, berlin: { ...randomBotSkin(), v: 1 } }), [fight?.key]);
   const fightState = fight && {
     ...hijackState,
+    players: hijackState.players.map((p) => (fightSkins[p.id] ? { ...p, skin: fightSkins[p.id] } : p)),
     settings: { goulagMoney: RULES.GOULAG_RETURN_MONEY },
     fight: { ids: fight.ids, W: ARENA.W, H: ARENA.H, obstacles: ARENA.obstacles },
   };
