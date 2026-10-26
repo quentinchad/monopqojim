@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS = {
   goulag: true,
   goulagMoney: RULES.GOULAG_RETURN_MONEY,
   trafficCaughtOnVisit: true, // tomber sur la case Prison (simple visite) en trafiquant = arrestation
+  jailVisitSteal: true, // en simple visite, on vole 75 $ à chaque prisonnier
   abandonDelay: 120, // secondes avant qu'un joueur déconnecté abandonne (prolongeable par les autres)
   maxPlayers: RULES.MAX_PLAYERS,
 };
@@ -155,6 +156,7 @@ export class Game {
       freeParkingPot: s.freeParkingPot ?? this.settings.freeParkingPot,
       goulag: s.goulag ?? this.settings.goulag,
       trafficCaughtOnVisit: s.trafficCaughtOnVisit ?? this.settings.trafficCaughtOnVisit,
+      jailVisitSteal: s.jailVisitSteal ?? this.settings.jailVisitSteal,
       abandonDelay: n(s.abandonDelay ?? this.settings.abandonDelay, 30, 900, 120),
     };
     this.changed();
@@ -234,7 +236,7 @@ export class Game {
       houses: 0, hotels: 0, hijacks: 0, hotelsLost: 0, jail: 0, trafficArrests: 0, trafficDeliveries: 0,
       doubles: 0, rolls: 0, diceTotal: 0, goPasses: 0, cards: 0, taxes: 0, trades: 0, swaps: 0,
       goulagWins: 0, goulagLosses: 0, peakWorth: 0, outTurn: null,
-      casinoSpins: 0, casinoBet: 0, casinoWon: 0, jackpots: 0, propsSold: 0,
+      casinoSpins: 0, casinoBet: 0, casinoWon: 0, jackpots: 0, propsSold: 0, stolen: 0,
     });
   }
 
@@ -407,6 +409,21 @@ export class Game {
     }
   }
 
+  // Simple visite : le visiteur détrousse chaque prisonnier (75 $, ou ce qui lui reste)
+  robPrisoners(p) {
+    const victims = this.players.filter((o) => o.id !== p.id && o.status === 'alive' && o.jail.in && o.money > 0);
+    for (const v of victims) {
+      const amount = Math.min(RULES.JAIL_VISIT_STEAL, v.money);
+      v.money -= amount;
+      p.money += amount;
+      this.st(p).stolen += amount;
+      this.addLog(`🫳 ${p.name} rend une « simple visite » à ${v.name} en prison et lui vole ${amount} $`, p.id);
+      this.addEvent('jailVisit', { pid: p.id, victim: v.id, amount, text: `🫳 ${p.name} vole ${amount} $ à ${v.name} en prison !` });
+    }
+    // laisse les cinématiques se jouer avant que les bots enchaînent
+    if (victims.length) this.after(() => { this.animUntil = Math.max(this.animUntil || 0, Date.now() + 1500 + victims.length * 14000); });
+  }
+
   sendToJail(p, reason = 'gotojail') {
     const heavy = p.trafficking;
     const from = p.pos;
@@ -459,7 +476,7 @@ export class Game {
         if (p.trafficking && this.settings.trafficCaughtOnVisit) {
           this.addLog(`🚔 Contrôle de police à la prison : ${p.name} est pris avec la marchandise !`, p.id);
           this.sendToJail(p, 'traffic');
-        }
+        } else if (this.settings.jailVisitSteal) this.robPrisoners(p);
         break;
       case 'casino':
         if (this.turn?.pid === p.id && p.money > 0) {

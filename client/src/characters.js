@@ -313,14 +313,20 @@ function buildFace(head, c, R, skinMat) {
       const k = add(head, new THREE.TorusGeometry(R * 0.17, R * 0.035, 8, 20), std('#111111'), s * R * 0.34, R * 0.13, R * 0.9);
       k.scale.set(1.1, 0.75, 1);
     }
-    const angry = c.extras.includes('angry');
+    const angry = c.extras.includes('angry') || c.extras.includes('evil');
     const brow = add(head, new THREE.BoxGeometry(R * 0.36, R * (angry ? 0.09 : 0.07), R * 0.08), std(c.hair === 'bald' ? shade(c.skin, 0.55) : c.hairColor), s * R * 0.33, R * (angry ? 0.33 : 0.4), R * 0.94);
     brow.rotation.z = s * (angry ? 0.5 : -0.12); // sourcils froncés : bout intérieur vers le bas
     add(head, new THREE.SphereGeometry(R * 0.2, 12, 8), skinMat, s * R * 0.99, 0, 0).scale.set(0.45, 1, 0.8); // oreilles
     if (s > 0 && c.extras.includes('earring')) add(head, new THREE.TorusGeometry(R * 0.07, R * 0.02, 6, 12), std('#d4af37', { metalness: 0.9, roughness: 0.2 }), R * 1.02, -R * 0.2, 0);
   }
   add(head, new THREE.SphereGeometry(R * 0.14, 12, 10), std(shade(c.skin, 0.93)), 0, -R * 0.06, R * 1.0); // nez
-  if (c.extras.includes('angry')) {
+  if (c.extras.includes('evil')) {
+    // grand sourire mauvais : arc relevé aux coins, dents serrées
+    const grin = add(head, new THREE.TorusGeometry(R * 0.24, R * 0.045, 8, 20, Math.PI), std('#5b1414'), 0, -R * 0.3, R * 0.9);
+    grin.rotation.set(-0.25, 0, Math.PI);
+    const teeth = add(head, new THREE.BoxGeometry(R * 0.36, R * 0.08, R * 0.05), std('#f8fafc', { roughness: 0.3 }), 0, -R * 0.46, R * 0.93);
+    teeth.rotation.x = -0.3;
+  } else if (c.extras.includes('angry')) {
     // bouche pincée et crispée
     for (const s of [-1, 1]) add(head, new THREE.BoxGeometry(R * 0.2, R * 0.05, R * 0.08), std('#5b1414'), s * R * 0.09, -R * 0.44, R * 0.92).rotation.z = s * 0.25;
   } else {

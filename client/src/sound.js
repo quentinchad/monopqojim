@@ -391,6 +391,43 @@ export function goulagSound({ walk = [1.4, 9.0], guards = 5.2, door = 10.2, dura
   return b;
 }
 
+// Simple visite à la prison : bourdonnement de néon, porte de cellule, pas, mélodie sournoise et billets froissés
+export function jailVisitSound({ burst = 2.6, cell = 4.0, look = 5.4, steal = 7.3, gloat = 9.1, leave = 10.9, close = 12.1, duration = 13.3 } = {}) {
+  const b = bus();
+  const out = b.out;
+  if (!out) return b;
+  drone({ out, osc: 'sawtooth', dur: duration, vol: 0.025, type: 'lowpass', points: [[0, 100, 0], [0.5, 100, 1], [duration - 0.4, 100, 1], [duration, 100, 0]] });
+  drone({ out, dur: duration, vol: 0.08, type: 'bandpass', q: 0.8, points: [[0, 400, 0], [1, 400, 0.6], [duration - 0.4, 350, 0.6], [duration, 350, 0]] });
+  // la porte de la prison : un coup sourd, puis elle s'ouvre à la volée et claque contre le mur
+  tone({ out, at: burst - 0.68, f: 80, f2: 45, dur: 0.25, vol: 0.5 });
+  noise({ out, at: burst - 0.68, dur: 0.15, vol: 0.35, type: 'lowpass', f: 700 });
+  noise({ out, at: burst, dur: 0.9, vol: 1, type: 'lowpass', f: 2600, f2: 150 });
+  tone({ out, at: burst, f: 95, f2: 38, dur: 0.7, vol: 0.7 });
+  for (const m of [1, 2.76, 5.4]) tone({ out, at: burst + 0.13, f: 160 * m, dur: 1.6, vol: 0.08 / m }); // l'acier résonne
+  noise({ out, at: burst + 0.35, dur: 0.2, vol: 0.3, type: 'lowpass', f: 1400 }); // rebond
+  // la porte de la cellule coulisse d'un coup sec, puis se referme
+  const slam = (at, vol) => {
+    noise({ out, at, dur: 0.22, vol: 0.15, type: 'bandpass', f: 900, f2: 1600, q: 5 });
+    noise({ out, at: at + 0.22, dur: 0.35, vol, type: 'lowpass', f: 1800, f2: 200 });
+    for (const m of [1, 2.76]) tone({ out, at: at + 0.22, f: 200 * m, dur: 0.9, vol: 0.06 / m });
+  };
+  slam(cell, 0.6);
+  slam(close, 0.45);
+  // pas sur le béton : bottes lourdes, pas pressés
+  for (const [a0, z] of [[burst + 0.45, look], [leave, duration - 0.3]]) for (let t = a0; t < z; t += 0.3) noise({ out, at: t, dur: 0.06, vol: 0.22, type: 'lowpass', f: 550 });
+  // mélodie de cambrioleur, sur la pointe des pieds
+  const sneak = [196, null, 233, null, 262, 247, 233, null, 196, null, 175, 185, 196];
+  sneak.forEach((f, i) => { if (f) tone({ out, at: look + i * 0.17, f, dur: 0.12, type: 'triangle', vol: 0.1, lp: 1600 }); });
+  // les billets qu'on froisse puis qu'on agite
+  for (let i = 0; i < 6; i++) noise({ out, at: steal + 0.5 + i * 0.12 + Math.random() * 0.05, dur: 0.08, vol: 0.14, type: 'highpass', f: 3000 });
+  tone({ out, at: steal + 1.6, f: 988, dur: 0.08, type: 'square', vol: 0.05, lp: 4000 });
+  tone({ out, at: steal + 1.67, f: 1319, dur: 0.35, type: 'square', vol: 0.05, lp: 4000 });
+  for (let i = 0; i < 8; i++) noise({ out, at: gloat + 0.3 + i * 0.18, dur: 0.06, vol: 0.12, type: 'highpass', f: 3500 });
+  // ricanement grave
+  [0, 0.16, 0.32, 0.48].forEach((d, i) => tone({ out, at: gloat + 0.2 + d, f: 150 - i * 8, f2: 120 - i * 8, dur: 0.12, type: 'sawtooth', vol: 0.06, lp: 900 }));
+  return b;
+}
+
 // Avant le duel : rumeur de la foule et crépitement des flashs au face-à-face, puis grosses caisses pendant les entrées
 export function duelIntroSound({ from = 0, walkA = 6.5, walkB = 9.75, duration = 13 } = {}) {
   const b = bus();

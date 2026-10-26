@@ -203,3 +203,32 @@ console.log('parties', games, stats);
   game.destroy();
   console.log('faillite : argent seul au créancier OK');
 }
+
+// Simple visite : le visiteur vole 75 $ à chaque prisonnier (ce qui lui reste s'il a moins)
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('V');
+  const a = game.addPlayer({ name: 'A', token: 'a' });
+  game.addPlayer({ name: 'B', token: 'b' });
+  game.addPlayer({ name: 'C', token: 'c' });
+  game.addPlayer({ name: 'D', token: 'd' });
+  game.start(a.id);
+  const [v, rich, poor, free] = game.players;
+  for (const q of [rich, poor]) { q.pos = 10; q.jail = { in: true, turns: 0, heavy: false }; }
+  rich.money = 500;
+  poor.money = 30;
+  free.pos = 10;
+  free.money = 500;
+  const before = v.money;
+  v.pos = 10;
+  game.land(v);
+  assert(rich.money === 425 && poor.money === 0, 'prisonniers détroussés');
+  assert(free.money === 500, 'un simple visiteur n’est pas volé');
+  assert(v.money === before + 105, 'le visiteur empoche 75 + 30');
+  assert(game.events.filter((e) => e.type === 'jailVisit').length === 2, 'une cinématique par prisonnier');
+  game.settings.jailVisitSteal = false;
+  game.land(v);
+  assert(rich.money === 425, 'règle désactivable');
+  game.destroy();
+  console.log('simple visite : vol des prisonniers OK');
+}

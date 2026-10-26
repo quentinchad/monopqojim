@@ -19,6 +19,7 @@ import { randomBotSkin } from '../../../shared/characters.js';
 
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
+const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 
@@ -140,6 +141,7 @@ export default function Demo() {
   const [statsState, setStatsState] = useState(null);
   const [podiumState, setPodiumState] = useState(null);
   const [goulag, setGoulag] = useState(null); // { event, state }
+  const [visit, setVisit] = useState(null); // { id, skins }
   const [podiumCount, setPodiumCount] = useState(5);
   const [smnColor, setSmnColor] = useState(PLAYER_COLORS[0]);
   const [smn, setSmn] = useState(null);
@@ -275,6 +277,15 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🫳 Simple visite à la prison (cinématique 3D)</h3>
+          <p className="muted">Quand un joueur s’arrête en simple visite, il vole {RULES.JAIL_VISIT_STEAL} $ à chaque prisonnier, sous ses yeux.</p>
+          <div className="row" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn primary" onClick={() => setVisit({ id: Date.now(), skins: [null, null] })}>▶ Pions classiques</button>
+            <button className="btn" onClick={() => setVisit({ id: Date.now(), skins: [{ ...randomBotSkin(), v: 1 }, { ...randomBotSkin(), v: 1 }] })}>🎲 Personnages au hasard</button>
+          </div>
+        </section>
+
+        <section className="panel">
           <h3>🏆 Podium de fin de partie (3D)</h3>
           <p className="muted">Simule une partie entre bots, puis présente les perdants, le 3e, le 2e et le vainqueur.</p>
           <label className="demo-field">Nombre de joueurs
@@ -312,6 +323,12 @@ export default function Demo() {
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <GoulagCinematic event={{ id: goulag.id, type: 'goulag', pid: 'me' }} onEnd={() => setGoulag(null)}
             state={{ ...boardState, id: 'DEMO', players: boardState.players.map((p) => (p.id === 'me' ? { ...p, skin: goulag.skin } : p)) }} />
+        </Suspense>
+      )}
+      {visit && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <JailVisitCinematic event={{ id: visit.id, type: 'jailVisit', pid: 'me', victim: 'berlin', amount: RULES.JAIL_VISIT_STEAL }} onEnd={() => setVisit(null)}
+            state={{ ...boardState, id: 'DEMO', players: boardState.players.map((p) => (p.id === 'me' ? { ...p, skin: visit.skins[0] } : p.id === 'berlin' ? { ...p, skin: visit.skins[1] } : p)) }} />
         </Suspense>
       )}
       {podiumState && (

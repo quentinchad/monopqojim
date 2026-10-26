@@ -9,6 +9,8 @@ export const RULES = {
   JAIL_TURNS: 3,
   // Trafic de drogue : peine doublée et bonus au passage par la case Départ
   TRAFFIC_JAIL_TURNS: 6,
+  // Simple visite de la prison : le visiteur détrousse chaque prisonnier
+  JAIL_VISIT_STEAL: 75,
   TRAFFIC_BONUS: 300,
   // Détournement d'avion : prix fixe, payé avant de savoir sur quelle ville adverse l'avion s'écrase
   HIJACK_PRICE: 150,

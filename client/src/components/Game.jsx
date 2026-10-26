@@ -26,8 +26,9 @@ const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 const SAY_MY_NAME_MS = 18000;
-const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag'];
+const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag', 'jailVisit'];
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
+const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
 const GOULAG_MS = 12200;
 
 // File d'attente des évènements marquants (cartes, détournements, goulag…)
@@ -131,7 +132,7 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'swap' && event.cells) for (const c of event.cells) highlights[c] = 'flash';
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // la cinématique remplace la bannière pour les détournements
-  const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag'].includes(event?.type) ? event : null;
+  const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag', 'jailVisit'].includes(event?.type) ? event : null;
   // la carte que je dois valider est déjà affichée au centre, avec son bouton
   const myCard = event?.type === 'card' && event.pid === me && state.turn?.pending?.type === 'card';
   const bannerEvent = cinematic || myCard ? null : event;
@@ -224,6 +225,11 @@ export default function Game({ state, me, onLeave }) {
       {cinematic?.type === 'goulag' && (
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <GoulagCinematic event={cinematic} state={state} onEnd={nextEvent} />
+        </Suspense>
+      )}
+      {cinematic?.type === 'jailVisit' && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <JailVisitCinematic event={cinematic} state={state} onEnd={nextEvent} />
         </Suspense>
       )}
       {cinematic?.type === 'delivery' && (

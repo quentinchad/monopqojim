@@ -695,3 +695,5 @@ small { color: var(--muted); }
 .fight3d .fight-timer { position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
 .fight3d .fight-close { top: auto; bottom: 12px; right: 14px; }
 .fo-back { margin-top: 6px; font-size: 14px; font-weight: 800; color: #e5e7eb; }
+.cinematic-caption.visit { border-color: #84cc16; }
+.visit-amount { color: #4ade80; font-weight: 900; }

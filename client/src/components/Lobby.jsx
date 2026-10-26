@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState } from 'react';
 import Avatar from './Avatar.jsx';
 
 const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
-import { PLAYER_COLORS } from '../../../shared/board.js';
+import { PLAYER_COLORS, RULES } from '../../../shared/board.js';
 import { lobby, toast } from '../net.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
@@ -96,6 +96,7 @@ export default function Lobby({ state, me, onLeave }) {
               </select>
             </label>
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.trafficCaughtOnVisit} onChange={(e) => set({ trafficCaughtOnVisit: e.target.checked })} /> Un trafiquant qui s’arrête sur la case Prison se fait arrêter</label>
+            <label className="check"><input type="checkbox" disabled={!isHost} checked={s.jailVisitSteal ?? true} onChange={(e) => set({ jailVisitSteal: e.target.checked })} /> En simple visite à la prison, on vole {RULES.JAIL_VISIT_STEAL} $ à chaque prisonnier</label>
           </div>
           <div className="rules-box">
             <p><b>🏙️ Villes & pays</b> — construisez maisons et hôtels quand vous possédez toutes les villes d’un pays.</p>
