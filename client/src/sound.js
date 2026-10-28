@@ -391,6 +391,31 @@ export function goulagSound({ walk = [1.4, 9.0], guards = 5.2, door = 10.2, dura
   return b;
 }
 
+// Régime de Vichy : crépitement du projecteur, sifflet du train, rumeur, flashs, petite fanfare pour la photo
+export function vichySound({ shake = 2.7, pose = 6.4, photo = 7.4, duration = 9.5 } = {}) {
+  const b = bus();
+  const out = b.out;
+  if (!out) return b;
+  // projecteur de cinéma et foule sur le quai
+  for (let t = 0; t < duration; t += 0.08) noise({ out, at: t, dur: 0.03, vol: 0.05 + Math.random() * 0.03, type: 'highpass', f: 2500 });
+  drone({ out, dur: duration, vol: 0.12, type: 'bandpass', q: 0.5, points: [[0, 700, 0], [0.6, 700, 0.6], [duration - 0.4, 650, 0.6], [duration, 650, 0]] });
+  // sifflet de la locomotive, puis halètement de la vapeur
+  for (const f of [740, 932]) tone({ out, at: 0.3, f, dur: 1.1, type: 'square', vol: 0.025, lp: 1800, attack: 0.05 });
+  for (let t = 1.5; t < duration; t += 0.55) noise({ out, at: t, dur: 0.3, vol: 0.06, type: 'bandpass', f: 600, f2: 300, q: 0.8, attack: 0.05 });
+  // pas sur le quai
+  for (let t = 0.2; t < shake - 0.3; t += 0.42) noise({ out, at: t, dur: 0.05, vol: 0.14, type: 'lowpass', f: 700 });
+  // flashs au magnésium
+  for (const at of [3.1, 3.8, 4.5, 5.1, photo]) {
+    noise({ out, at, dur: 0.05, vol: 0.25, type: 'highpass', f: 3000 });
+    noise({ out, at: at + 0.04, dur: 0.25, vol: 0.06, type: 'bandpass', f: 1200 });
+  }
+  // applaudissements polis pendant la poignée de main
+  for (let i = 0; i < 26; i++) noise({ out, at: shake + Math.random() * (pose - shake), dur: 0.05, vol: 0.08, type: 'highpass', f: 3200 });
+  // fanfare de cuivres pour la photo officielle
+  [[523, 0], [659, 0.18], [784, 0.36], [1047, 0.6]].forEach(([f, d]) => tone({ out, at: photo + 0.1 + d, f, dur: d === 0.6 ? 0.9 : 0.2, type: 'sawtooth', vol: 0.05, lp: 2200 }));
+  return b;
+}
+
 // Simple visite à la prison : bourdonnement de néon, porte de cellule, pas, mélodie sournoise et billets froissés
 export function jailVisitSound({ burst = 2.6, cell = 4.0, look = 5.4, steal = 7.3, gloat = 9.1, leave = 10.9, close = 12.1, duration = 13.3 } = {}) {
   const b = bus();
@@ -486,6 +511,7 @@ export function eventSound(type) {
     card: sfx.card, traffic: sfx.traffic, pot: sfx.pot, swap: sfx.swap, goulag: sfx.goulag,
     fight: sfx.fightStart, goulagWin: sfx.goulagWin, bankrupt: sfx.bankrupt, win: sfx.win,
     trade: sfx.tradeDone, disconnect: sfx.disconnect, reconnect: sfx.reconnect, jail: sfx.refuse,
+    vichyEnd: sfx.chime,
     pause: () => tone({ f: 523, f2: 330, dur: 0.35, type: 'triangle', vol: 0.12 }), resume: sfx.chime,
   }[type];
   fn?.();

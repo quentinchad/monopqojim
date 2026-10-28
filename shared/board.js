@@ -14,6 +14,9 @@ export const RULES = {
   TRAFFIC_BONUS: 300,
   // Détournement d'avion : prix fixe, payé avant de savoir sur quelle ville adverse l'avion s'écrase
   HIJACK_PRICE: 150,
+  HIJACK_PRICE_OWN: 50, // depuis un aéroport que l'on possède
+  // Régime de Vichy : durée de l'alliance, en tours de table
+  VICHY_ROUNDS: 3,
   // Goulag : argent rendu au gagnant du combat
   GOULAG_RETURN_MONEY: 1000,
   MAX_PLAYERS: 8,

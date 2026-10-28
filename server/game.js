@@ -5,6 +5,7 @@ import {
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
 import { cleanCharacter, randomBotSkin } from '../shared/characters.js';
+import { cleanCiv, randomCiv, DEFAULT_CIV } from '../shared/civs.js';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const shuffle = (arr) => {
@@ -25,7 +26,9 @@ const fail = (msg) => { throw new GameError(msg); };
 
 export const DEFAULT_SETTINGS = {
   startMoney: RULES.START_MONEY,
-  auction: true,
+  auction: false,
+  rentInJail: true, // un propriétaire en prison touche quand même ses loyers
+  civs: true, // civilisations (style des bâtiments)
   freeParkingPot: true,
   goulag: true,
   goulagMoney: RULES.GOULAG_RETURN_MONEY,
@@ -57,6 +60,7 @@ export class Game {
     this.fight = null;
     this.paused = false;
     this.pause = { votes: new Set(), since: null };
+    this.alliances = []; // Régime de Vichy : { a, b, until }
     this.decks = { chance: [], chest: [] };
     this.createdAt = Date.now();
     this.version = 0;
@@ -103,7 +107,7 @@ export class Game {
       color, money: 0, pos: 0,
       jail: { in: false, turns: 0, heavy: false },
       jailCards: [], trafficking: false,
-      status: 'alive', usedGoulag: false, goulagSince: null, debtCreditor: null,
+      status: 'alive', usedGoulag: false, goulagSince: null, debtCreditor: null, civ: DEFAULT_CIV,
       skin: null, // pion personnalisé : { type, colors, v } (l'image est servie à part, voir skinImage)
     };
     this.players.push(p);
@@ -120,6 +124,7 @@ export class Game {
     // chaque bot reçoit un pion au hasard : personnage connu (pas déjà pris) ou perso composé
     const taken = this.players.map((p) => p.skin?.preset).filter(Boolean);
     bot.skin = { ...randomBotSkin(taken), v: Date.now() };
+    bot.civ = randomCiv();
     this.changed();
   }
 
@@ -136,6 +141,14 @@ export class Game {
     if (!PLAYER_COLORS.includes(color)) fail('Couleur invalide');
     if (this.players.some((p) => p.color === color && p.id !== pid)) fail('Couleur déjà prise');
     this.player(pid).color = color;
+    this.changed();
+  }
+
+  setCiv(pid, civ) {
+    if (this.phase !== 'lobby') fail('Impossible pendant la partie');
+    const p = this.player(pid);
+    if (!p) fail('Joueur inconnu');
+    p.civ = cleanCiv(civ);
     this.changed();
   }
 
@@ -159,6 +172,8 @@ export class Game {
       goulag: s.goulag ?? this.settings.goulag,
       trafficCaughtOnVisit: s.trafficCaughtOnVisit ?? this.settings.trafficCaughtOnVisit,
       jailVisitSteal: s.jailVisitSteal ?? this.settings.jailVisitSteal,
+      rentInJail: s.rentInJail ?? this.settings.rentInJail,
+      civs: s.civs ?? this.settings.civs,
       abandonDelay: n(s.abandonDelay ?? this.settings.abandonDelay, 30, 900, 120),
     };
     this.changed();
@@ -263,6 +278,8 @@ export class Game {
 
   beginTurn(p) {
     if (this.stats) { this.stats.turns++; this.snapshot(); }
+    this.turnCount = (this.turnCount || 0) + 1;
+    this.expireAlliances();
     this.turn = { pid: p.id, phase: 'roll', dice: null, rollId: 0, doubles: 0, extraRoll: false, pending: null, rolled: false };
   }
 
@@ -507,8 +524,12 @@ export class Game {
       this.turn.pending = { type: 'buy', cell: cell.index, hijackAfter: cell.type === 'airport' };
       return;
     }
-    if (prop.owner !== p.id) {
-      const owner = this.player(prop.owner);
+    const owner = prop.owner !== p.id ? this.player(prop.owner) : null;
+    if (owner && this.partnerOf(p.id) === owner.id) {
+      this.addLog(`🤝 ${p.name} est chez son collaborateur ${owner.name} : pas de loyer (${cell.name})`, p.id);
+    } else if (owner && owner.jail.in && !this.settings.rentInJail) {
+      this.addLog(`🚔 ${owner.name} est en prison : ${p.name} ne paie pas de loyer (${cell.name})`, p.id);
+    } else if (owner) {
       let rent = this.rentFor(cell.index, opts);
       this.addLog(`${p.name} paie ${rent} $ de loyer à ${owner.name} (${cell.name})`, p.id);
       const ps = this.st(p);
@@ -517,6 +538,15 @@ export class Game {
       this.st(owner).rentReceived += rent;
       this.cellStat(cell.index).rent += rent;
       this.charge(p, rent, owner.id);
+      // Régime de Vichy : le loyer encaissé est partagé avec le collaborateur
+      const partner = this.player(this.partnerOf(owner.id));
+      if (partner) {
+        const half = Math.floor(rent / 2);
+        owner.money -= half;
+        partner.money += half;
+        this.clearDebt(partner);
+        this.addLog(`🤝 ${owner.name} reverse ${half} $ à son collaborateur ${partner.name}`, owner.id);
+      }
     }
     if (cell.type === 'airport') this.offerHijack(p, cell.index);
   }
@@ -527,14 +557,15 @@ export class Game {
     if (!prop?.owner) return 0;
     if (cell.type === 'city') {
       if (prop.houses > 0) return cell.rents[prop.houses];
-      return cell.rents[0] * (this.ownsCountry(prop.owner, cell.country) ? 2 : 1);
+      return cell.rents[0] * (this.teamOwnsCountry(prop.owner, cell.country) ? 2 : 1);
     }
+    const team = this.teamOf(prop.owner);
     if (cell.type === 'airport') {
-      const n = BOARD.filter((c) => c.type === 'airport' && this.props[c.index].owner === prop.owner).length;
+      const n = BOARD.filter((c) => c.type === 'airport' && team.includes(this.props[c.index].owner)).length;
       return AIRPORT_RENTS[n - 1] * (opts.rentMultiplier || 1);
     }
     if (cell.type === 'utility') {
-      const n = BOARD.filter((c) => c.type === 'utility' && this.props[c.index].owner === prop.owner).length;
+      const n = BOARD.filter((c) => c.type === 'utility' && team.includes(this.props[c.index].owner)).length;
       const mult = opts.utilityMultiplier || (n === 2 ? 10 : 4);
       const dice = this.turn?.dice || [3, 4];
       return (dice[0] + dice[1]) * mult;
@@ -544,6 +575,51 @@ export class Game {
 
   ownsCountry(pid, country) {
     return COUNTRY_CELLS[country].every((i) => this.props[i].owner === pid);
+  }
+
+  // ---------- Régime de Vichy : alliances temporaires ----------
+  partnerOf(pid) {
+    const al = this.alliances.find((x) => x.a === pid || x.b === pid);
+    if (!al) return null;
+    const other = this.player(al.a === pid ? al.b : al.a);
+    return other && other.status === 'alive' ? other.id : null;
+  }
+
+  teamOf(pid) {
+    const partner = this.partnerOf(pid);
+    return partner ? [pid, partner] : [pid];
+  }
+
+  // pour les loyers, les villes des deux collaborateurs comptent ensemble
+  teamOwnsCountry(pid, country) {
+    const team = this.teamOf(pid);
+    return COUNTRY_CELLS[country].every((i) => team.includes(this.props[i].owner));
+  }
+
+  formAlliance(p) {
+    const others = this.alive.filter((o) => o.id !== p.id);
+    if (this.alive.length < 3) {
+      this.addLog(`🤝 Régime de Vichy : il faut au moins 3 joueurs en jeu, la carte de ${p.name} est sans effet`, p.id);
+      return;
+    }
+    const partner = others[Math.floor(Math.random() * others.length)];
+    this.alliances = this.alliances.filter((x) => ![x.a, x.b].some((id) => id === p.id || id === partner.id));
+    this.alliances.push({ a: p.id, b: partner.id, until: (this.turnCount || 0) + RULES.VICHY_ROUNDS * this.alive.length });
+    this.addLog(`🤝 Régime de Vichy : ${p.name} et ${partner.name} collaborent pendant ${RULES.VICHY_ROUNDS} tours de table`, p.id);
+    this.addEvent('vichy', { pid: p.id, partner: partner.id, text: `🤝 Régime de Vichy : ${p.name} collabore avec ${partner.name} !` });
+  }
+
+  expireAlliances() {
+    this.alliances = this.alliances.filter((al) => {
+      const a = this.player(al.a);
+      const b = this.player(al.b);
+      const over = (this.turnCount || 0) >= al.until || a?.status !== 'alive' || b?.status !== 'alive';
+      if (over && a && b) {
+        this.addLog(`🤝 Fin de la collaboration entre ${a.name} et ${b.name} : chacun reprend ses biens`);
+        this.addEvent('vichyEnd', { text: `🕊️ Fin de la collaboration entre ${a.name} et ${b.name}` });
+      }
+      return !over;
+    });
   }
 
   // Paiement : le solde peut devenir négatif, le joueur doit alors vendre/hypothéquer ou faire faillite
@@ -696,7 +772,8 @@ export class Game {
   // Proposé seulement s'il existe une cible ; la ville n'est tirée qu'au moment du paiement
   offerHijack(p, airportIndex) {
     if (this.hijackTarget(p) == null) return;
-    this.turn.pending = { type: 'hijack', from: airportIndex, cost: RULES.HIJACK_PRICE };
+    const own = this.props[airportIndex]?.owner === p.id;
+    this.turn.pending = { type: 'hijack', from: airportIndex, cost: own ? RULES.HIJACK_PRICE_OWN : RULES.HIJACK_PRICE, own };
   }
 
   actHijack(p, accept) {
@@ -802,6 +879,7 @@ export class Game {
         this.addEvent('traffic', { pid: p.id, text: `💊 ${p.name} se lance dans le trafic de drogue…` });
         break;
       case 'swap': this.forcedSwap(p); break;
+      case 'vichy': this.formAlliance(p); break;
       default: break;
     }
   }
@@ -1083,7 +1161,7 @@ export class Game {
   }
 
   validateSide(p, o) {
-    if (p.money < o.money) fail(`${p.name} n’a pas assez d’argent`);
+    if (o.money > 0 && p.money < o.money) fail(`${p.name} n’a pas assez d’argent`);
     if (p.jailCards.length < o.cards) fail(`${p.name} n’a pas assez de cartes prison`);
     for (const i of o.props) {
       if (this.props[i].owner !== p.id) fail(`${BOARD[i].name} n’appartient pas à ${p.name}`);
@@ -1309,6 +1387,7 @@ export class Game {
       props: this.props,
       turn: this.turn,
       auction: this.auction && { ...this.auction, after: undefined, remaining: this.auction.pausedLeft ?? Math.max(0, this.auction.endsAt - Date.now()) },
+      alliances: this.alliances.map((al) => ({ a: al.a, b: al.b, turnsLeft: Math.max(0, al.until - (this.turnCount || 0)) })),
       pause: { on: this.paused, votes: [...this.pause.votes], needed: this.pauseNeeded(), since: this.pause.since },
       trades: this.trades,
       log: this.log.slice(-80),

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { buildBuilding3D } from '../buildings.js';
+import { civOf } from '../../../shared/civs.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BOARD, COUNTRIES } from '../../../shared/board.js';
 import { cellRect, cellCenter, tokenOffset, TOTAL } from '../layout.js';
@@ -198,10 +199,10 @@ function makePawn(color) {
 
 // Un seul bâtiment par ville, qui grandit à chaque construction (maisonnette → hôtel)
 const BUILDING_SCALE = 1.2;
-function buildHouses(group, n, depth, animate) {
+function buildHouses(group, n, depth, animate, civ) {
   while (group.children.length) group.remove(group.children[0]);
   if (!n) return;
-  const b = buildBuilding3D(n);
+  const b = buildBuilding3D(n, civ);
   b.position.set(0, CELL_H / 2, -depth / 2 + 0.21);
   group.add(b);
   // le nouveau bâtiment sort de terre en rebondissant
@@ -479,7 +480,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         c.group.position.y = CELL_H / 2 + (hl === 'spot' ? 0.12 : 0);
         // pendant la cinématique, les bâtiments visés restent debout jusqu'à l'impact
         const n = w.cineHotel === c.cell.index ? w.cineHouses : prop?.houses || 0;
-        if (n !== c.houseCount) { buildHouses(c.houses, n, c.depth, c.houseCount >= 0 && n > c.houseCount); c.houseCount = n; }
+        const civ = civOf(state, prop?.owner);
+        if (n !== c.houseCount || civ !== c.civ) { buildHouses(c.houses, n, c.depth, c.houseCount >= 0 && n > c.houseCount, civ); c.houseCount = n; c.civ = civ; }
       }
     };
     w.refresh = refresh;

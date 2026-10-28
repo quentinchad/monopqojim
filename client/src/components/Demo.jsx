@@ -16,10 +16,12 @@ import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
 import SlotMachine from './SlotMachine.jsx';
 import { randomBotSkin } from '../../../shared/characters.js';
+import { CIVS } from '../../../shared/civs.js';
 
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
 const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
+const VichyCinematic = lazy(() => import('./VichyCinematic.jsx'));
 const Board3D = lazy(() => import('./Board3D.jsx'));
 
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
@@ -143,6 +145,7 @@ export default function Demo() {
   const [podiumState, setPodiumState] = useState(null);
   const [goulag, setGoulag] = useState(null); // { event, state }
   const [visit, setVisit] = useState(null); // { id, skins }
+  const [vichy, setVichy] = useState(null); // { id, skins }
   const [podiumCount, setPodiumCount] = useState(5);
   const [smnColor, setSmnColor] = useState(PLAYER_COLORS[0]);
   const [smn, setSmn] = useState(null);
@@ -150,6 +153,12 @@ export default function Demo() {
   const bannerIdx = useRef(0);
   const [boardState, setBoardState] = useState(() => makeDemoState(null));
   const [boardView, setBoardView] = useState('2d');
+  // civilisation des joueurs de la démo : la même pour tous, ou une différente par joueur ('mix')
+  const setCivs = (civ) => setBoardState((st) => ({
+    ...st,
+    settings: { ...st.settings, civs: true },
+    players: st.players.map((p, k) => ({ ...p, civ: civ === 'mix' ? Object.keys(CIVS)[(k + 1) % Object.keys(CIVS).length] : civ })),
+  }));
   // constructions du plateau de démo : tous les niveaux mélangés, ou le même niveau partout
   const setBuildings = (level) => setBoardState((st) => ({
     ...st,
@@ -286,6 +295,15 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>🤝 Régime de Vichy (cinématique 3D)</h3>
+          <p className="muted">Carte Chance : deux joueurs scellent leur collaboration par une poignée de main sur le quai de la gare de Montoire, façon actualités d’époque.</p>
+          <div className="row" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn primary" onClick={() => setVichy({ id: Date.now(), skins: [null, null] })}>▶ Pions classiques</button>
+            <button className="btn" onClick={() => setVichy({ id: Date.now(), skins: [{ ...randomBotSkin(), v: 1 }, { ...randomBotSkin(), v: 1 }] })}>🎲 Personnages au hasard</button>
+          </div>
+        </section>
+
+        <section className="panel">
           <h3>🫳 Simple visite à la prison (cinématique 3D)</h3>
           <p className="muted">Quand un joueur s’arrête en simple visite, il vole {RULES.JAIL_VISIT_STEAL} $ à chaque prisonnier, sous ses yeux.</p>
           <div className="row" style={{ justifyContent: 'flex-start' }}>
@@ -324,6 +342,10 @@ export default function Demo() {
             {[1, 2, 3, 4, 5].map((n) => <button key={n} className="btn tiny" onClick={() => setBuildings(n)}>{n === 5 ? '🏨' : n}</button>)}
             <button className="btn tiny" onClick={() => setBuildings(0)}>Raser</button>
           </div>
+          <div className="row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            {Object.entries(CIVS).map(([id, c]) => <button key={id} className="btn tiny" title={c.levels.join(' → ')} onClick={() => setCivs(id)}>{c.icon} {c.name}</button>)}
+            <button className="btn tiny" onClick={() => setCivs('mix')}>🌍 Une par joueur</button>
+          </div>
         </section>
 
         <section className="panel">
@@ -355,6 +377,12 @@ export default function Demo() {
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <GoulagCinematic event={{ id: goulag.id, type: 'goulag', pid: 'me' }} onEnd={() => setGoulag(null)}
             state={{ ...boardState, id: 'DEMO', players: boardState.players.map((p) => (p.id === 'me' ? { ...p, skin: goulag.skin } : p)) }} />
+        </Suspense>
+      )}
+      {vichy && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <VichyCinematic event={{ id: vichy.id, type: 'vichy', pid: 'me', partner: 'tokyo' }} onEnd={() => setVichy(null)}
+            state={{ ...boardState, id: 'DEMO', players: boardState.players.map((p) => (p.id === 'me' ? { ...p, skin: vichy.skins[0] } : p.id === 'tokyo' ? { ...p, skin: vichy.skins[1] } : p)) }} />
         </Suspense>
       )}
       {visit && (

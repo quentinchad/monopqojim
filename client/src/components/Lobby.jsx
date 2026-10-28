@@ -3,6 +3,7 @@ import Avatar from './Avatar.jsx';
 
 const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 import { PLAYER_COLORS, RULES } from '../../../shared/board.js';
+import { CIVS, cleanCiv } from '../../../shared/civs.js';
 import { lobby, toast } from '../net.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
@@ -61,6 +62,20 @@ export default function Lobby({ state, me, onLeave }) {
                   );
                 })}
               </div>
+              {s.civs !== false && (
+                <>
+                  <h3>Votre civilisation <small className="muted">(style de vos bâtiments)</small></h3>
+                  <div className="civ-picker">
+                    {Object.entries(CIVS).map(([id, c]) => (
+                      <button key={id} className={`civ-btn ${cleanCiv(meP.civ) === id ? 'active' : ''}`} onClick={() => lobby('civ', { civ: id })}
+                        title={c.levels.join(' → ')}>
+                        <span className="civ-icon">{c.icon}</span>{c.name}
+                      </button>
+                    ))}
+                  </div>
+                  <small className="muted">{CIVS[cleanCiv(meP.civ)].levels.join(' → ')}</small>
+                </>
+              )}
               <h3>Votre pion</h3>
               <div className="row" style={{ justifyContent: 'flex-start' }}>
                 <Avatar state={state} p={meP} />
@@ -97,14 +112,17 @@ export default function Lobby({ state, me, onLeave }) {
             </label>
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.trafficCaughtOnVisit} onChange={(e) => set({ trafficCaughtOnVisit: e.target.checked })} /> Un trafiquant qui s’arrête sur la case Prison se fait arrêter</label>
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.jailVisitSteal ?? true} onChange={(e) => set({ jailVisitSteal: e.target.checked })} /> En simple visite à la prison, on vole {RULES.JAIL_VISIT_STEAL} $ à chaque prisonnier</label>
+            <label className="check"><input type="checkbox" disabled={!isHost} checked={s.rentInJail ?? true} onChange={(e) => set({ rentInJail: e.target.checked })} /> Un joueur en prison touche quand même ses loyers</label>
+            <label className="check"><input type="checkbox" disabled={!isHost} checked={s.civs ?? true} onChange={(e) => set({ civs: e.target.checked })} /> Civilisations (chaque joueur choisit le style de ses bâtiments)</label>
           </div>
           <div className="rules-box">
             <p><b>🏙️ Villes & pays</b> — construisez maisons et hôtels quand vous possédez toutes les villes d’un pays.</p>
-            <p><b>✈️ Aéroports</b> — en vous arrêtant sur un aéroport, vous pouvez payer 150 $ pour détourner un avion : il s’écrase sur une ville adverse construite tirée au hasard, que l’on découvre en direct, et en détruit les maisons ou l’hôtel.</p>
+            <p><b>✈️ Aéroports</b> — en vous arrêtant sur un aéroport, vous pouvez payer 150 $ (50 $ si c’est le vôtre) pour détourner un avion : il s’écrase sur une ville adverse construite tirée au hasard, que l’on découvre en direct, et en détruit les maisons ou l’hôtel.</p>
             <p><b>💊 Trafic de drogue</b> — carte Chance : +300 $ au prochain passage par Départ, mais si vous allez en prison la peine est doublée (6 tours) et seul un double vous libère.</p>
             <p><b>⛓️ Goulag</b> — un joueur en faillite part au goulag (une seule fois par partie). Dès que 2 joueurs y sont et qu’il reste au moins 2 joueurs en jeu, ils s’affrontent en duel : le vainqueur revient, le perdant est éliminé.</p>
             <p><b>🎰 Casino</b> — misez la somme de votre choix à la machine à sous (5 parties max par arrêt) : trois symboles identiques rapportent gros.</p>
             <p><b>🏦 Pas d’hypothèque</b> — pour trouver de l’argent, vendez vos bâtiments ou revendez vos propriétés à la banque (moitié du prix).</p>
+            <p><b>🤝 Régime de Vichy</b> — carte Chance : vous collaborez avec un joueur tiré au hasard pendant {RULES.VICHY_ROUNDS} tours de table (3 joueurs minimum) : pas de loyer entre vous, vos villes comptent ensemble et vous partagez les loyers encaissés.</p>
             <p><b>🔀 Échange forcé</b> — carte Chance : une de vos villes est échangée au hasard avec celle d’un adversaire.</p>
           </div>
           {isHost ? (

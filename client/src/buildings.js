@@ -1,10 +1,13 @@
 // Un seul bâtiment par ville, qui s'agrandit à chaque construction :
 // 1 maisonnette, 2 maison à étage, 3 villa avec une aile, 4 manoir à colonnes, 5 hôtel (tour).
 // En 3D (plateau) : groupe posé à y = 0, façade vers +z, emprise d'environ 0,7 × 0,32.
-// En 2D : icône SVG du même bâtiment.
+// En 2D : icône SVG du même bâtiment. Les civilisations (civBuildings.js) remplacent ce style classique.
 import * as THREE from 'three';
+import { CIV_BUILDERS, CIV_SVGS } from './civBuildings.js';
+import { CIVS, cleanCiv } from '../../shared/civs.js';
 
-export const BUILDING_NAMES = ['', 'Maisonnette', 'Maison', 'Villa', 'Manoir', 'Hôtel'];
+// nom du bâtiment d'un niveau, selon la civilisation
+export const buildingName = (level, civ) => CIVS[cleanCiv(civ)].levels[level - 1] || '';
 
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
 const M = {
@@ -143,9 +146,11 @@ function hotel(g) {
 
 const BUILDERS = [null, cottage, house, villa, manor, hotel];
 
-export function buildBuilding3D(level) {
+export function buildBuilding3D(level, civ) {
   const g = new THREE.Group();
-  BUILDERS[Math.max(0, Math.min(5, level))]?.(g);
+  const n = Math.max(0, Math.min(5, level));
+  const civBuild = CIV_BUILDERS[cleanCiv(civ)];
+  if (n) (civBuild ? civBuild[n - 1] : BUILDERS[n])(g);
   return g;
 }
 
@@ -188,7 +193,9 @@ const SVGS = [
     + `<rect x="14" y="26.4" width="4" height="3.6" fill="${Y}"/>`,
 ];
 
-export function buildingSvg(level) {
+export function buildingSvg(level, civ) {
   const n = Math.max(0, Math.min(5, level | 0));
-  return n ? `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">${SVGS[n]}</svg>` : '';
+  if (!n) return '';
+  const art = CIV_SVGS[cleanCiv(civ)]?.[n - 1] ?? SVGS[n];
+  return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">${art}</svg>`;
 }

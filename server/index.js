@@ -132,6 +132,7 @@ io.on('connection', (socket) => {
       case 'addBot': game.addBot(pid); break;
       case 'kick': game.removePlayer(pid, data.playerId); break;
       case 'color': game.setColor(pid, data.color); break;
+      case 'civ': game.setCiv(pid, data.civ); break;
       case 'name': game.setName(pid, data.name); break;
       case 'settings': game.updateSettings(pid, data.settings || {}); break;
       case 'start': game.start(pid); break;

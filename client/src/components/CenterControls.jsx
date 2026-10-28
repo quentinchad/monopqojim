@@ -156,6 +156,7 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
         <div className="decision hijack">
           <div className="hijack-title">✈️ Détournement d’avion</div>
           <div>Détourner un avion depuis <b>{BOARD[pend.from].name}</b> ?</div>
+          {pend.own && <small className="hijack-own">✈️ C’est votre aéroport : tarif réduit !</small>}
           <small>Il s’écrasera sur une ville adverse construite tirée au hasard : maisons ou hôtel, vous le découvrirez en direct !</small>
           <div className="row">
             <button className="btn danger" disabled={meP.money < pend.cost} onClick={() => act('hijack', { accept: true })}>💥 Détourner ({money(pend.cost)})</button>

@@ -715,3 +715,29 @@ small { color: var(--muted); }
 .cell.dim { filter: brightness(.4) saturate(.4); }
 .player-row { cursor: default; }
 .player-row.hovered { outline: 2px solid var(--pc); outline-offset: -2px; }
+
+/* civilisations, alliances, échanges des autres */
+.civ-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.civ-btn { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--deep); color: var(--text); cursor: pointer; font-weight: 700; font-size: 13px; text-align: left; }
+.civ-btn.active { border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,.35); }
+.civ-icon { font-size: 18px; }
+.ally-tag { margin-left: 4px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--ac) 30%, transparent); border: 1px solid var(--ac); white-space: nowrap; }
+.trades-others summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.trades-others .trade-item { margin-top: 6px; }
+.hijack-own { color: #86efac; font-weight: 800; }
+
+/* ---------- Régime de Vichy : actualités d'époque ---------- */
+.vichy-overlay .board3d canvas { filter: sepia(.85) saturate(.6) contrast(1.15) brightness(.95); animation: vichy-flicker .18s steps(2) infinite; }
+@keyframes vichy-flicker { 50% { filter: sepia(.85) saturate(.6) contrast(1.15) brightness(1.03); } }
+.vichy-grain { position: absolute; inset: -50%; z-index: 1; pointer-events: none; opacity: .18; background-image: repeating-radial-gradient(circle at 17% 32%, rgba(0,0,0,.6) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, transparent 0 140px, rgba(30,20,10,.35) 140px 141px, transparent 141px 380px); animation: vichy-grain .25s steps(3) infinite; }
+@keyframes vichy-grain { 33% { transform: translate(3%, -2%); } 66% { transform: translate(-2%, 3%); } }
+.vichy-vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, rgba(25, 15, 5, .75) 100%); }
+.vichy-flash { position: absolute; inset: 0; z-index: 2; background: #fffbeb; pointer-events: none; animation: vichy-flash .7s ease-out forwards; }
+@keyframes vichy-flash { from { opacity: 1; } to { opacity: 0; } }
+.vichy-overlay.is-photo .board3d canvas { animation: none; filter: sepia(1) saturate(.4) contrast(1.25); }
+.vichy-card { position: absolute; left: 50%; bottom: calc(9vh + 20px); transform: translateX(-50%); z-index: 3; background: #1c1917; color: #f5f0e6; border: 3px double #d6c7a1; padding: 10px 22px; font-family: Georgia, serif; font-size: clamp(16px, 2.2vw, 24px); text-align: center; display: flex; flex-direction: column; animation: fadeIn .6s ease-out; }
+.vichy-card small { letter-spacing: 4px; text-transform: uppercase; font-size: 11px; color: #d6c7a1; }
+.vichy-title { position: absolute; left: 50%; bottom: calc(9vh + 14px); background: rgba(28, 25, 23, .82); border: 3px double #d6c7a1; padding: 10px 22px; transform: translateX(-50%); z-index: 3; text-align: center; font-family: Georgia, serif; color: #f5f0e6; text-shadow: 0 2px 8px #000; animation: fadeIn .8s ease-out .3s both; max-width: 90%; }
+.vichy-title .vt-head { font-size: clamp(22px, 3.6vw, 40px); font-weight: 900; letter-spacing: 6px; }
+.vichy-title .vt-names { font-size: clamp(18px, 3vw, 32px); margin-top: 4px; }
+.vichy-title .vt-sub { font-size: 14px; color: #e7dcc0; margin-top: 8px; }

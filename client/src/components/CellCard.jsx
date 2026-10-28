@@ -68,7 +68,7 @@ export default function CellCard({ state, me, index, onClose }) {
             </div>
           )}
           {cell.type === 'airport' && (
-            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour {money(RULES.HIJACK_PRICE)} : il s’écrase sur une ville adverse construite tirée au hasard et en détruit les maisons ou l’hôtel.</p>
+            <p className="note">En vous arrêtant ici, vous pouvez détourner un avion pour {money(RULES.HIJACK_PRICE)} ({money(RULES.HIJACK_PRICE_OWN)} si l’aéroport vous appartient) : il s’écrase sur une ville adverse construite tirée au hasard et en détruit les maisons ou l’hôtel.</p>
           )}
           {cell.price && (
             <div className="cc-info">

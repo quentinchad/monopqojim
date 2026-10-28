@@ -27,10 +27,12 @@ const SkinEditor = lazy(() => import('./SkinEditor.jsx'));
 const PodiumCinematic = lazy(() => import('./PodiumCinematic.jsx'));
 const SayMyNameCinematic = lazy(() => import('./SayMyNameCinematic.jsx'));
 const SAY_MY_NAME_MS = 18000;
-const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag', 'jailVisit'];
+const CINEMATICS = ['busted', 'hijack', 'delivery', 'goulag', 'jailVisit', 'vichy'];
 const GoulagCinematic = lazy(() => import('./GoulagCinematic.jsx'));
 const JailVisitCinematic = lazy(() => import('./JailVisitCinematic.jsx'));
 const JAIL_VISIT_MS = 13300; // durée de la cinématique (VISIT_DURATION dans jailVisit.js)
+const VichyCinematic = lazy(() => import('./VichyCinematic.jsx'));
+const VICHY_MS = 9500; // durée de la cinématique (VICHY_DURATION dans vichy.js)
 const GOULAG_MS = 12200;
 
 // File d'attente des évènements marquants (cartes, détournements, goulag…)
@@ -71,6 +73,7 @@ function useEventQueue(events, paused) {
         : ev?.type === 'delivery' ? SAY_MY_NAME_MS + 4000
           : ev?.type === 'goulag' ? GOULAG_MS + 4000
           : ev?.type === 'jailVisit' ? JAIL_VISIT_MS + 4000
+          : ev?.type === 'vichy' ? VICHY_MS + 4000
           : ev?.type === 'card' ? 6500 : 5000;
     const to = setTimeout(() => remove(activeId), ms);
     return () => clearTimeout(to);
@@ -143,7 +146,7 @@ export default function Game({ state, me, onLeave }) {
     }
   }
   // la cinématique remplace la bannière pour les détournements
-  const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag', 'jailVisit'].includes(event?.type) ? event : null;
+  const cinematic = (event?.type === 'hijack' && event.from != null) || ['busted', 'delivery', 'goulag', 'jailVisit', 'vichy'].includes(event?.type) ? event : null;
   // la carte que je dois valider est déjà affichée au centre, avec son bouton
   const myCard = event?.type === 'card' && event.pid === me && state.turn?.pending?.type === 'card';
   const bannerEvent = cinematic || myCard ? null : event;
@@ -238,6 +241,11 @@ export default function Game({ state, me, onLeave }) {
       {cinematic?.type === 'goulag' && (
         <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
           <GoulagCinematic event={cinematic} state={state} onEnd={nextEvent} />
+        </Suspense>
+      )}
+      {cinematic?.type === 'vichy' && (
+        <Suspense fallback={<div className="cinematic-overlay"><div className="loading3d">Chargement…</div></div>}>
+          <VichyCinematic event={cinematic} state={state} onEnd={nextEvent} />
         </Suspense>
       )}
       {cinematic?.type === 'jailVisit' && (

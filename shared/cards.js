@@ -21,6 +21,7 @@ export const CHANCE_CARDS = [
   { id: 'c_traffic', text: '💊 Trafic de drogue ! Vous transportez une cargaison. Au prochain passage par Départ vous toucherez un bonus… mais si vous tombez sur la prison, la peine est doublée !', action: { kind: 'traffic' } },
   { id: 'c_traffic2', text: '💊 Un cartel vous recrute ! Livrez la marchandise : bonus au prochain passage par Départ, mais peine doublée si vous êtes arrêté.', action: { kind: 'traffic' } },
   { id: 'c_swap', text: '🔀 Échange forcé ! Une de vos villes est échangée au hasard contre une ville d’un autre joueur.', action: { kind: 'swap' } },
+  { id: 'c_vichy', text: '🤝 Régime de Vichy ! Vous collaborez avec un joueur tiré au hasard : pendant 3 tours de table, vous ne vous payez plus de loyer, vos villes comptent ensemble et vous partagez les loyers encaissés.', action: { kind: 'vichy' } },
   { id: 'c_swap2', text: '🔀 Accord diplomatique imposé ! Échange forcé d’une de vos villes contre celle d’un adversaire.', action: { kind: 'swap' } },
 ];
 

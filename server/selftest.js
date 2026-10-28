@@ -262,3 +262,71 @@ console.log('parties', games, stats);
   game.destroy();
   console.log('pause par vote OK');
 }
+
+// Échanges avec un joueur dans le négatif, détournement depuis son aéroport, loyers en prison, Régime de Vichy
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('R');
+  const a = game.addPlayer({ name: 'A', token: 'a' });
+  const b = game.addPlayer({ name: 'B', token: 'b' });
+  const c = game.addPlayer({ name: 'C', token: 'c' });
+  game.start(a.id);
+  assert(game.settings.auction === false, 'enchères décochées par défaut');
+  // échanges : B est à -50 $
+  b.money = -50;
+  game.props[1].owner = b.id;
+  game.props[3].owner = a.id;
+  const t1 = game.actProposeTrade(a, { to: b.id, offer: { money: 100 }, request: { props: [1] } });
+  assert(t1, 'on peut proposer de l’argent à un joueur dans le négatif');
+  const t2 = game.actProposeTrade(b, { to: a.id, offer: { props: [1] }, request: { money: 80 } });
+  assert(t2, 'un joueur dans le négatif peut proposer un échange');
+  let refused = false;
+  try { game.actProposeTrade(b, { to: a.id, offer: { money: 10 }, request: { props: [3] } }); } catch { refused = true; }
+  assert(refused, 'il ne peut pas offrir de l’argent qu’il n’a pas');
+  game.actAcceptTrade(b, t1.id);
+  assert(b.money === 50 && game.props[1].owner === a.id, 'échange conclu, dette remboursée');
+  // détournement : 50 $ depuis son propre aéroport
+  game.props[5].owner = a.id;
+  Object.assign(game.props[1], { owner: b.id, houses: 2 });
+  game.offerHijack(a, 5);
+  assert(game.turn.pending?.cost === 50, 'détournement à 50 $ depuis son aéroport');
+  game.props[5].owner = c.id;
+  game.offerHijack(a, 5);
+  assert(game.turn.pending?.cost === 150, 'détournement à 150 $ sinon');
+  game.turn.pending = null;
+  // loyers en prison
+  game.props[1].houses = 0;
+  c.jail = { in: true, turns: 0, heavy: false };
+  Object.assign(game.props[6], { owner: c.id, houses: 0 });
+  game.settings.rentInJail = false;
+  const before = a.money;
+  a.pos = 6;
+  game.land(a);
+  assert(a.money === before, 'propriétaire en prison : pas de loyer si la règle est désactivée');
+  game.settings.rentInJail = true;
+  game.land(a);
+  assert(a.money < before, 'loyer payé sinon');
+  c.jail = { in: false, turns: 0, heavy: false };
+  // Régime de Vichy
+  game.formAlliance(a);
+  const partner = game.player(game.partnerOf(a.id));
+  assert(partner && partner.id !== a.id, 'alliance formée');
+  const other = [b, c].find((p) => p.id !== partner.id);
+  Object.assign(game.props[39], { owner: partner.id, houses: 0 });
+  const am = a.money;
+  a.pos = 39;
+  game.land(a);
+  assert(a.money === am, 'pas de loyer chez son collaborateur');
+  const pm = partner.money;
+  const aa = a.money;
+  const om = other.money;
+  other.pos = 39;
+  game.land(other);
+  const rent = om - other.money;
+  assert(rent > 0 && partner.money - pm + (a.money - aa) === rent && a.money - aa === Math.floor(rent / 2), 'loyer partagé');
+  game.turnCount += 100;
+  game.expireAlliances();
+  assert(!game.partnerOf(a.id), 'fin de l’alliance');
+  game.destroy();
+  console.log('négatif / détournement / prison / Vichy OK');
+}

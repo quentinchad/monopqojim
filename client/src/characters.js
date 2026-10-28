@@ -386,9 +386,20 @@ function buildFigure(c) {
       add(g, new THREE.SphereGeometry(0.027 * Math.max(1, aw * 0.8), 12, 8), skinMat, -s * 0.075 * w * b.chest, 0.33 + s * 0.012, front + 0.005);
       continue;
     }
-    const lowerArm = add(g, new THREE.CylinderGeometry(0.026 * aw, 0.024 * aw, 0.09, 12), fore, s * (0.135 * w * b.chest + 0.02), 0.27, 0.01);
+    // le bras pend depuis l'épaule, sur un pivot qu'on peut faire tourner (poignée de main…)
+    const sx = s * 0.105 * w * b.chest;
+    const arm = new THREE.Group();
+    arm.position.set(sx, 0.41, 0);
+    g.add(arm);
+    g.remove(upper);
+    arm.add(upper);
+    upper.position.set(upper.position.x - sx, upper.position.y - 0.41, upper.position.z);
+    const lowerArm = add(arm, new THREE.CylinderGeometry(0.026 * aw, 0.024 * aw, 0.09, 12), fore, s * (0.135 * w * b.chest + 0.02) - sx, 0.27 - 0.41, 0.01);
     lowerArm.rotation.z = s * 0.1;
-    add(g, new THREE.SphereGeometry(0.027 * Math.max(1, aw * 0.8), 12, 8), skinMat, s * (0.14 * w * b.chest + 0.022), 0.215, 0.012);
+    const hand = new THREE.Vector3(s * (0.14 * w * b.chest + 0.022) - sx, 0.215 - 0.41, 0.012);
+    add(arm, new THREE.SphereGeometry(0.027 * Math.max(1, aw * 0.8), 12, 8), skinMat, hand.x, hand.y, hand.z);
+    arm.userData.hand = hand; // position de la main dans le repère du pivot
+    (g.userData.arms ||= {})[s < 0 ? 'right' : 'left'] = arm;
   }
   if (c.top === 'tank') {
     for (const s of [-1, 1]) add(g, new THREE.BoxGeometry(0.03, 0.06, 0.02), topMat, s * 0.05 * w, 0.42, 0.06);
@@ -431,8 +442,11 @@ export function buildCharacter(g, cfg, color) {
     const a = place(buildFigure(c), -0.115, k * 0.72);
     place(buildFigure(c), 0.115, k * 0.72);
     g.userData.head = a.userData.head;
+    g.userData.arms = a.userData.arms;
   } else {
-    g.userData.head = place(buildFigure(c), 0, k).userData.head;
+    const fig = place(buildFigure(c), 0, k);
+    g.userData.head = fig.userData.head;
+    g.userData.arms = fig.userData.arms;
   }
   return g;
 }

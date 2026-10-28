@@ -4,14 +4,15 @@ import { cellRect, cellCenter, pct, tokenOffset, CORNER, TOTAL } from '../layout
 import { flagSvg } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { skinUrl, skinBackground } from '../skin3d.js';
-import { buildingSvg, BUILDING_NAMES } from '../buildings.js';
+import { buildingSvg, buildingName } from '../buildings.js';
+import { civOf } from '../../../shared/civs.js';
 
 const ICONS = { chance: '❓', chest: '📦', tax: '💸', airport: '✈️', casino: '🎰' };
 
 // Un seul bâtiment qui grandit : maisonnette, maison, villa, manoir, puis hôtel
-function Houses({ n }) {
+function Houses({ n, civ }) {
   if (!n) return null;
-  return <span key={n} className={`building lvl-${n}`} title={BUILDING_NAMES[n]} dangerouslySetInnerHTML={{ __html: buildingSvg(n) }} />;
+  return <span key={`${civ}${n}`} className={`building lvl-${n}`} title={buildingName(n, civ)} dangerouslySetInnerHTML={{ __html: buildingSvg(n, civ) }} />;
 }
 
 function CellContent({ cell, state }) {
@@ -31,7 +32,7 @@ function CellContent({ cell, state }) {
           </div>
           <div className="cbody">
             <div className="cname">{cell.name}</div>
-            <Houses n={prop?.houses} />
+            <Houses n={prop?.houses} civ={civOf(state, prop?.owner)} />
             {priceLine}
           </div>
         </>
