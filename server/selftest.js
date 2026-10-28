@@ -222,13 +222,13 @@ console.log('parties', games, stats);
   const before = v.money;
   v.pos = 10;
   game.land(v);
-  assert(rich.money === 425 && poor.money === 0, 'prisonniers détroussés');
+  assert(rich.money === 350 && poor.money === 0, 'prisonniers détroussés');
   assert(free.money === 500, 'un simple visiteur n’est pas volé');
-  assert(v.money === before + 105, 'le visiteur empoche 75 + 30');
+  assert(v.money === before + 180, 'le visiteur empoche 150 + 30');
   assert(game.events.filter((e) => e.type === 'jailVisit').length === 2, 'une cinématique par prisonnier');
   game.settings.jailVisitSteal = false;
   game.land(v);
-  assert(rich.money === 425, 'règle désactivable');
+  assert(rich.money === 350, 'règle désactivable');
   game.destroy();
   console.log('simple visite : vol des prisonniers OK');
 }
