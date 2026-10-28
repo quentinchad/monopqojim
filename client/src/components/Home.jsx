@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { flagSvg } from '../flags.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
+import RulesButton from './RulesSheet.jsx';
 
 const FLAGS = ['br', 'cn', 'es', 'de', 'it', 'jp', 'fr', 'us'];
 
@@ -45,13 +46,14 @@ export default function Home({ initialRoom, onEnter }) {
           </>
         )}
       </div>
-      <div className="row"><ThemePicker /><SoundToggle /></div>
+      <div className="row"><ThemePicker /><SoundToggle /><RulesButton /></div>
       <div className="home-rules">
         <div><b>✈️ Aéroports</b> Détournez un avion : il s’écrase au hasard sur une ville adverse.</div>
         <div><b>💊 Trafic</b> Bonus au passage par Départ… ou peine de prison doublée.</div>
         <div><b>⛓️ Goulag</b> Éliminé ? Battez-vous en duel pour revenir en jeu.</div>
         <div><b>🔀 Échange forcé</b> Une carte Chance qui échange vos villes au hasard.</div>
         <div><b>🎰 Casino</b> Misez ce que vous voulez à la machine à sous de Macao.</div>
+        <RulesButton className="btn ghost" label="📜 Voir toutes les règles" />
       </div>
     </div>
   );

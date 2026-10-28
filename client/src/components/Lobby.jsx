@@ -7,6 +7,7 @@ import { CIVS, cleanCiv } from '../../../shared/civs.js';
 import { lobby, toast } from '../net.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
+import RulesButton from './RulesSheet.jsx';
 import { inviteLink } from '../embed.js';
 
 export default function Lobby({ state, me, onLeave }) {
@@ -29,6 +30,7 @@ export default function Lobby({ state, me, onLeave }) {
         <h1 className="logo small" onClick={onLeave}>MONOP<span>QOJIM</span></h1>
         <ThemePicker />
         <SoundToggle />
+        <RulesButton settings={s} />
         <div className="room-code">Partie <b>{state.id}</b></div>
       </div>
       <div className="lobby-grid">
@@ -124,6 +126,7 @@ export default function Lobby({ state, me, onLeave }) {
             <p><b>🏦 Pas d’hypothèque</b> — pour trouver de l’argent, vendez vos bâtiments ou revendez vos propriétés à la banque (moitié du prix).</p>
             <p><b>🤝 Régime de Vichy</b> — carte Chance : vous collaborez avec un joueur tiré au hasard pendant {RULES.VICHY_ROUNDS} tours de table (3 joueurs minimum) : pas de loyer entre vous, vos villes comptent ensemble et vous partagez les loyers encaissés.</p>
             <p><b>🔀 Échange forcé</b> — carte Chance : une de vos villes est échangée au hasard avec celle d’un adversaire.</p>
+            <RulesButton settings={s} className="btn tiny" label="📜 Fiche complète des règles" />
           </div>
           {isHost ? (
             <button className="btn primary big" disabled={state.players.length < 2} onClick={() => lobby('start')}>

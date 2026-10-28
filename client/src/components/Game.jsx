@@ -11,6 +11,7 @@ import DisconnectBanner from './DisconnectBanner.jsx';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
 import { PauseButton, PauseOverlay } from './PauseControls.jsx';
+import RulesButton from './RulesSheet.jsx';
 import EndGameStats from './EndGameStats.jsx';
 import { HIJACK_DURATION } from '../cinematic.js';
 import { BUSTED_DURATION } from '../busted.js';
@@ -178,6 +179,7 @@ export default function Game({ state, me, onLeave }) {
         <ThemePicker />
         <SoundToggle />
         <PauseButton state={state} me={me} />
+        <RulesButton settings={state.settings} className="btn tiny" />
         <LogChat state={state} me={me} />
       </aside>
 
