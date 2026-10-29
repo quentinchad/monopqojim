@@ -46,12 +46,139 @@ function raiseFunds(game, p) {
   return tryAct(game, p, { type: 'bankrupt' });
 }
 
-function evaluateTrade(game, p, t) {
+// ---------- échanges & négociation ----------
+// Horloge des bots (remplaçable dans les tests pour simuler le temps qui passe)
+const clock = (game) => (game.botClock ? game.botClock() : Date.now());
+const round10 = (x) => Math.max(0, Math.round(x / 10) * 10);
+const TRADE_THINK_MS = 2500; // délai de « réflexion » avant de répondre
+const TRADE_EXPIRE_MS = 75000; // un bot retire sa proposition restée sans réponse
+
+function tradeMemo(game) {
+  return (game.botTrades ||= { next: {}, tried: {}, seen: {} });
+}
+
+// âge d'une proposition, selon l'horloge des bots
+function tradeAge(game, t) {
+  const memo = tradeMemo(game);
+  const now = clock(game);
+  if (memo.seen[t.id] == null) {
+    memo.seen[t.id] = now;
+    const ids = Object.keys(memo.seen);
+    if (ids.length > 200) for (const id of ids) if (!game.trades.some((x) => x.id === id)) delete memo.seen[id];
+  }
+  return now - memo.seen[t.id];
+}
+
+// Bilan d'un échange pour p, son destinataire : ce qu'il reçoit et ce qu'il cède
+function tradeBalance(game, p, t) {
   const from = game.player(t.from);
   const gain = t.offer.money + t.offer.cards * 50 + t.offer.props.reduce((s, i) => s + valueFor(game, p, i, t.offer.props), 0);
   // ce que l'on cède vaut plus si cela complète un pays pour l'adversaire
   const loss = t.request.money + t.request.cards * 50 + t.request.props.reduce((s, i) => s + valueFor(game, from, i, t.request.props) * 1.1, 0);
-  return gain > loss * 1.15 && p.money - t.request.money >= 0;
+  return { gain, loss };
+}
+
+// marge exigée : le bot se montre de plus en plus conciliant au fil des contre-propositions
+// (en fin de négociation, il accepte un échange équilibré qui l'aide aussi à avancer)
+const RATIOS = [1.15, 1.05, 0.95, 0.88];
+const wantedRatio = (t) => RATIOS[Math.min(RATIOS.length - 1, t.round || 0)];
+
+// Contre-proposition : le bot paie moins, puis réclame plus d'argent, jusqu'à la marge qu'il vise
+function counterOffer(game, p, t, gain, loss, ratio) {
+  const from = game.player(t.from);
+  const k = ratio * 1.03;
+  // après la première réponse, le bot coupe la poire en deux plutôt que de réclamer tout ce qu'il veut
+  let gap = (loss * k - gain) * ((t.round || 0) >= 1 ? 0.6 : 1);
+  const give = { ...t.request };
+  const take = { ...t.offer };
+  const cut = Math.min(give.money, Math.ceil(gap / k / 10) * 10);
+  give.money -= cut;
+  gap -= cut * k;
+  if (gap > 0) take.money += Math.ceil(gap / 10) * 10;
+  if (take.money > Math.max(0, from.money) || give.money > Math.max(0, p.money)) return null;
+  return { offer: give, request: take };
+}
+
+function respondToTrade(game, p, t) {
+  const decline = () => tryAct(game, p, { type: 'declineTrade', id: t.id });
+  const { gain, loss } = tradeBalance(game, p, t);
+  const ratio = wantedRatio(t);
+  if (gain > loss * ratio && p.money >= t.request.money) {
+    // la situation a pu changer depuis la proposition (argent dépensé, bien vendu…)
+    return tryAct(game, p, { type: 'acceptTrade', id: t.id }) || decline();
+  }
+  // offre ridicule ou négociation qui s'éternise : refus
+  if ((t.round || 0) >= 3 || gain < loss * 0.5) return decline();
+  const counter = counterOffer(game, p, t, gain, loss, ratio);
+  return (counter && tryAct(game, p, { type: 'counterTrade', id: t.id, ...counter })) || decline();
+}
+
+// Le bot cherche à compléter un pays en rachetant à leur propriétaire les villes qui lui manquent
+function proposeTrade(game, p) {
+  const memo = tradeMemo(game);
+  const now = clock(game);
+  if (!memo.next[p.id]) memo.next[p.id] = now + 15000 + Math.random() * 30000;
+  if (now < memo.next[p.id]) return false;
+  memo.next[p.id] = now + 40000 + Math.random() * 50000;
+  if (game.trades.some((t) => t.from === p.id)) return false;
+
+  const deals = [];
+  for (const [country, cells] of Object.entries(COUNTRY_CELLS)) {
+    if (cells.some((i) => game.props[i].houses > 0)) continue;
+    const mine = cells.filter((i) => game.props[i].owner === p.id);
+    const missing = cells.filter((i) => game.props[i].owner !== p.id);
+    if (!mine.length || !missing.length || mine.length < missing.length) continue;
+    const owners = new Set(missing.map((i) => game.props[i].owner));
+    if (owners.size !== 1) continue;
+    const target = game.player([...owners][0]);
+    if (!target || target.status !== 'alive') continue;
+    // un joueur ne reçoit qu'une proposition de bot à la fois
+    if (game.trades.some((t) => t.to === target.id && game.player(t.from)?.isBot)) continue;
+    const key = `${target.id}:${country}`;
+    if (memo.tried[key] > now) continue;
+    deals.push({ country, target, missing, key });
+  }
+  if (!deals.length) return false;
+  const d = deals[Math.floor(Math.random() * deals.length)];
+  memo.tried[d.key] = now + 4 * 60000;
+
+  const worth = d.missing.reduce((s, i) => s + valueFor(game, p, i, d.missing), 0);
+  const theirLoss = d.missing.reduce((s, i) => s + valueFor(game, d.target, i, d.missing) * 1.1, 0);
+  const maxGive = worth / 1.15;
+  // un bien qui intéresse l'autre (il possède déjà des villes du même pays) peut remplacer une partie de l'argent
+  let sweetener = null;
+  for (const i of owned(game, p)) {
+    const cell = BOARD[i];
+    if (game.groupHasBuildings(i) || (cell.type === 'city' && cell.country === d.country)) continue;
+    if (cell.type === 'city' && COUNTRY_CELLS[cell.country].some((j) => j !== i && game.props[j].owner === p.id)) continue;
+    const forThem = valueFor(game, d.target, i, [i]);
+    const cost = valueFor(game, p, i) * 1.1;
+    if (forThem > cost * 1.1 && (!sweetener || forThem - cost > sweetener.forThem - sweetener.cost)) sweetener = { i, forThem, cost };
+  }
+  // offre d'ouverture un peu basse, pour garder de la marge dans la négociation
+  const opening = theirLoss * 1.15 * (0.85 + Math.random() * 0.15);
+  let money = round10(opening - (sweetener?.forThem || 0));
+  money = Math.min(money, round10(maxGive - (sweetener?.cost || 0)), round10(p.money - 150));
+  if (money + (sweetener?.cost || 0) > maxGive || (money <= 0 && !sweetener)) return false;
+  return tryAct(game, p, {
+    type: 'proposeTrade', to: d.target.id,
+    offer: { money: Math.max(0, money), props: sweetener ? [sweetener.i] : [], cards: 0 },
+    request: { money: 0, props: d.missing, cards: 0 },
+  });
+}
+
+function handleTrades(game, bots) {
+  for (const t of game.trades) {
+    const p = game.player(t.to);
+    if (!p?.isBot || p.status !== 'alive' || tradeAge(game, t) < TRADE_THINK_MS) continue;
+    return respondToTrade(game, p, t);
+  }
+  for (const t of game.trades) {
+    const p = game.player(t.from);
+    if (p?.isBot && tradeAge(game, t) > TRADE_EXPIRE_MS) return tryAct(game, p, { type: 'declineTrade', id: t.id });
+  }
+  for (const p of bots) if (p.isBot && proposeTrade(game, p)) return true;
+  return false;
 }
 
 function tryBuild(game, p) {
@@ -78,13 +205,6 @@ export function botStep(game) {
     if (p.money < 0) return raiseFunds(game, p);
   }
 
-  for (const t of game.trades) {
-    const p = game.player(t.to);
-    if (p && p.isBot) {
-      return tryAct(game, p, { type: evaluateTrade(game, p, t) ? 'acceptTrade' : 'declineTrade', id: t.id });
-    }
-  }
-
   const a = game.auction;
   if (a) {
     for (const p of bots) {
@@ -95,6 +215,8 @@ export function botStep(game) {
     }
     return false;
   }
+
+  if (handleTrades(game, bots)) return true;
 
   const p = game.current;
   if (!p || !isAI(game, p)) return false;

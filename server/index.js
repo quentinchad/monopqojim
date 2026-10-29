@@ -11,6 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, '..', 'client', 'dist');
 const ROOM_TTL = 30 * 60 * 1000;
+// une partie en pause est gardée bien plus longtemps, même si tout le monde a fermé le jeu
+const PAUSED_ROOM_TTL = 12 * 60 * 60 * 1000;
 
 const app = express();
 const server = http.createServer(app);
@@ -169,6 +171,13 @@ io.on('connection', (socket) => {
       if (op === 'country') {
         for (const i of d.cells) Object.assign(game.props[i], { owner: pid, houses: 0 });
       }
+      if (op === 'botTrade') {
+        // un bot possède Los Angeles, le joueur New York : le bot propose tout de suite de racheter New York
+        const bot = others.find((p) => p.isBot);
+        Object.assign(game.props[37], { owner: bot.id, houses: 0 });
+        Object.assign(game.props[39], { owner: pid, houses: 0 });
+        game.botTrades = { next: { ...game.botTrades?.next, [bot.id]: 1 }, tried: {}, seen: game.botTrades?.seen || {} };
+      }
       if (op === 'card') {
         const deck = d.id.startsWith('c_') ? 'chance' : 'chest';
         game.decks[deck] = [d.id, ...game.decks[deck].filter((x) => x !== d.id)];
@@ -220,7 +229,8 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, game] of rooms) {
     const humans = game.players.filter((p) => !p.isBot && p.connected).length;
-    if (!humans && now - game.lastActivity > ROOM_TTL) {
+    const ttl = game.phase === 'playing' && game.paused ? PAUSED_ROOM_TTL : ROOM_TTL;
+    if (!humans && now - game.lastActivity > ttl) {
       game.destroy();
       rooms.delete(id);
       continue;
@@ -233,13 +243,15 @@ setInterval(() => {
 
 server.listen(PORT, () => console.log(`🎲 Monopqojim en écoute sur http://localhost:${PORT}`));
 
-// Anti-veille Render (plan gratuit), désactivé par défaut : le service s'endort après 15 min sans visite
-// et se réveille à la visite suivante. Avec KEEP_ALIVE=1, il se rend visite à lui-même toutes les 10 min
-// via son adresse publique (fournie par Render dans RENDER_EXTERNAL_URL) pour rester allumé.
+// Anti-veille Render (plan gratuit) : le service s'endort après 15 min sans visite et les parties en mémoire
+// sont perdues. Tant qu'une partie est en cours (en pause comprise), il se rend visite à lui-même toutes les
+// 10 min via son adresse publique (fournie par Render dans RENDER_EXTERNAL_URL) ; sinon il peut s'endormir.
+// KEEP_ALIVE=1 : toujours allumé ; KEEP_ALIVE=0 : jamais de ping.
 const SELF_URL = process.env.RENDER_EXTERNAL_URL;
-if (SELF_URL && process.env.KEEP_ALIVE === '1') {
+if (SELF_URL && process.env.KEEP_ALIVE !== '0') {
   setInterval(() => {
+    const inProgress = [...rooms.values()].some((g) => g.phase === 'playing');
+    if (!inProgress && process.env.KEEP_ALIVE !== '1') return;
     fetch(`${SELF_URL}/health`).catch((e) => console.warn('Anti-veille : échec du ping', e.message));
   }, 10 * 60 * 1000);
-  console.log(`⏰ Anti-veille actif : ping de ${SELF_URL}/health toutes les 10 min`);
 }

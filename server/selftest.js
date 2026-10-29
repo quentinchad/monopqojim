@@ -3,16 +3,19 @@ import { Game } from './game.js';
 import { botStep } from './bots.js';
 import { BOARD } from '../shared/board.js';
 
-let games = 0, stats = { goulagFights: 0, hijacks: 0, swaps: 0, traffic: 0, casino: 0, wins: 0, stalls: 0 };
+let games = 0, stats = { goulagFights: 0, hijacks: 0, swaps: 0, traffic: 0, casino: 0, wins: 0, stalls: 0, botOffers: 0, botCounters: 0, botDeals: 0 };
 for (let g = 0; g < 200; g++) {
   const game = new Game('T' + g);
   game.goulagCinematicMs = 0; // pas d'affichage : le duel démarre tout de suite
   for (let i = 0; i < 5; i++) game.addPlayer({ name: 'B' + i, token: null, isBot: true });
   game.hostId = game.players[0].id;
   game.start(game.hostId);
+  let fakeNow = 0;
+  game.botClock = () => fakeNow; // chaque action de bot « dure » une seconde
   let steps = 0, idle = 0;
   while (game.phase === 'playing' && steps < 20000) {
     steps++;
+    fakeNow += 1000;
     if (game.fight) {
       stats.goulagFights++;
       const f = game.fight;
@@ -37,10 +40,40 @@ for (let g = 0; g < 200; g++) {
   stats.traffic += game.log.filter(l => l.text.includes('marchandise')).length;
   stats.casino += game.log.filter(l => l.text.startsWith("🎰")).length;
   if (game.phase === 'ended') stats.wins++;
+  stats.botOffers += game.log.filter(l => l.text.includes('propose un échange')).length;
+  stats.botCounters += game.log.filter(l => l.text.includes('contre-proposition')).length;
+  stats.botDeals += game.log.filter(l => l.text.includes('accepte l’échange')).length;
   games++;
   game.destroy();
 }
 console.log('parties', games, stats);
+if (!stats.botOffers || !stats.botCounters || !stats.botDeals) throw new Error('les bots ne négocient pas entre eux');
+
+// Négociation : un bot fait une contre-proposition à une offre trop basse d'un humain, puis accepte
+{
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const game = new Game('N');
+  const hum = game.addPlayer({ name: 'H', token: null });
+  const bot = game.addPlayer({ name: 'B', token: null, isBot: true });
+  game.hostId = hum.id;
+  game.start(hum.id);
+  let now = 0;
+  game.botClock = () => now;
+  const tick = () => { botStep(game); now += 5000; botStep(game); };
+  game.props[39].owner = bot.id; // New York
+  game.handle(hum.id, { type: 'proposeTrade', to: bot.id, offer: { money: 350, props: [], cards: 0 }, request: { money: 0, props: [39], cards: 0 } });
+  tick();
+  const c = game.trades.find((t) => t.from === bot.id && t.to === hum.id);
+  assert(c && c.counter && c.round === 1 && c.request.money > 350, 'contre-proposition du bot : ' + JSON.stringify(game.trades));
+  game.handle(hum.id, { type: 'acceptTrade', id: c.id });
+  assert(game.props[39].owner === hum.id, 'échange conclu après négociation');
+  // une offre ridicule est refusée sans discussion
+  game.props[37].owner = bot.id;
+  game.handle(hum.id, { type: 'proposeTrade', to: bot.id, offer: { money: 10, props: [], cards: 0 }, request: { money: 0, props: [37], cards: 0 } });
+  tick();
+  assert(!game.trades.length, 'offre ridicule refusée');
+  console.log('négociation OK : contre-proposition à', c.request.money, '$');
+}
 
 // Statistiques : une partie terminée doit avoir un historique cohérent
 {

@@ -1178,7 +1178,8 @@ export class Game {
     if (!offer.money && !offer.props.length && !offer.cards && !request.money && !request.props.length && !request.cards) fail('Échange vide');
     this.validateSide(p, offer);
     this.validateSide(to, request);
-    const t = { id: uid(), from: p.id, to: to.id, offer, request, t: Date.now(), counter: !!a.counter };
+    // round : nombre de contre-propositions déjà échangées (les bots finissent par lâcher l'affaire)
+    const t = { id: uid(), from: p.id, to: to.id, offer, request, t: Date.now(), counter: !!a.counter, round: a.round || 0 };
     this.trades.push(t);
     this.addLog(a.counter ? `🤝 ${p.name} fait une contre-proposition à ${to.name}` : `🤝 ${p.name} propose un échange à ${to.name}`, p.id);
     return t;
@@ -1190,7 +1191,7 @@ export class Game {
     if (!t || t.to !== p.id) fail('Échange introuvable');
     const from = this.player(t.from);
     if (!from || from.status !== 'alive') fail('Joueur invalide');
-    this.actProposeTrade(p, { to: from.id, offer: a.offer, request: a.request, counter: true });
+    this.actProposeTrade(p, { to: from.id, offer: a.offer, request: a.request, counter: true, round: (t.round || 0) + 1 });
     this.trades = this.trades.filter((x) => x.id !== t.id);
   }
 
