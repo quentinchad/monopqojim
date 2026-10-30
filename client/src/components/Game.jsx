@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import Board2D from './Board2D.jsx';
-import { useActiveBoard } from '../activeBoard.js';
+import { useActiveBoard, BOARD_N } from '../activeBoard.js';
 import CenterControls from './CenterControls.jsx';
 import CellCard from './CellCard.jsx';
 import TradeModal from './TradeModal.jsx';
@@ -158,7 +158,7 @@ export default function Game({ state, me, onLeave }) {
   if (event?.type === 'hijack' && event.cell != null) highlights[event.cell] = 'boom';
   // survol d'un joueur dans la liste : ses propriétés s'illuminent, le reste du plateau s'assombrit
   if (hoverPid) {
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < BOARD_N; i++) {
       if (highlights[i]) continue;
       highlights[i] = state.props[i]?.owner === hoverPid ? 'spot' : 'dim';
     }
