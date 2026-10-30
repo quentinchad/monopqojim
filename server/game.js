@@ -18,7 +18,10 @@ const shuffle = (arr) => {
 };
 const ALL_CARDS = Object.fromEntries([...CHANCE_CARDS, ...CHEST_CARDS].map((c) => [c.id, c]));
 export const SKIN_TYPES = ['person', 'animal', 'vehicle', 'object', 'character'];
-const BOT_NAMES = ['Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul', 'Bot Dakar'];
+const BOT_NAMES = [
+  'Bot Tokyo', 'Bot Rio', 'Bot Berlin', 'Bot Nairobi', 'Bot Oslo', 'Bot Lima', 'Bot Séoul', 'Bot Dakar',
+  'Bot Lagos', 'Bot Quito', 'Bot Hanoï', 'Bot Tunis', 'Bot Riga', 'Bot Perth', 'Bot Cusco', 'Bot Doha',
+];
 
 export class GameError extends Error {}
 const buildingsLabel = (n) => (n === 5 ? 'l’hôtel' : n === 1 ? 'la maison' : `les ${n} maisons`);

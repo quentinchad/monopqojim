@@ -512,11 +512,12 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
           w.tokens.set(p.id, tok);
         }
         const c = cellCenter(+pos);
-        let { dx, dy } = tokenOffset(k, list.length);
+        let { dx, dy, s } = tokenOffset(k, list.length);
         if (+pos === JAIL) {
           if (p.jail.in) { dx = dx * 0.6 + 0.25; dy = dy * 0.6 - 0.25; } else { dx = dx * 0.6 - 0.45; dy = dy * 0.6 + 0.45; }
         }
         tok.target = { x: c.x + dx - (TOTAL / 2), z: c.y + dy - (TOTAL / 2) };
+        tok.obj.scale.setScalar(s); // pions plus petits quand une case est bondée
         tok.obj.userData.ring.visible = state.turn?.pid === p.id && state.phase === 'playing';
         tok.cell = +pos;
       });

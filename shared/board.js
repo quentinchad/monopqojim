@@ -19,7 +19,7 @@ export const RULES = {
   VICHY_ROUNDS: 5,
   // Goulag : argent rendu au gagnant du combat
   GOULAG_RETURN_MONEY: 1000,
-  MAX_PLAYERS: 8,
+  MAX_PLAYERS: 16,
   // Revente d'une propriété à la banque : ce pourcentage de son prix d'achat
   RESALE_RATIO: 0.5,
 };
@@ -87,6 +87,15 @@ export const PLAYER_COLORS = [
   '#f97316', // orange
   '#ec4899', // rose
   '#06b6d4', // cyan
+  // jusqu'à 16 joueurs : couleurs assez foncées pour la lettre blanche des pions
+  '#0d9488', // sarcelle
+  '#65a30d', // vert pomme
+  '#92400e', // brun
+  '#1e40af', // bleu marine
+  '#9f1239', // bordeaux
+  '#475569', // ardoise
+  '#c026d3', // fuchsia
+  '#4f46e5', // indigo
 ];
 
 export const COUNTRIES = {

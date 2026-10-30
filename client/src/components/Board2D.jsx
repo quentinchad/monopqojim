@@ -122,7 +122,7 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
 
       {Object.entries(byCell).flatMap(([pos, list]) => list.map((p, k) => {
         const c = cellCenter(+pos);
-        let { dx, dy } = tokenOffset(k, list.length);
+        let { dx, dy, s } = tokenOffset(k, list.length);
         if (+pos === JAIL) {
           // dans la prison : en haut à droite ; en visite : sur le bord
           if (p.jail.in) { dx = dx * 0.6 + 0.25; dy = dy * 0.6 - 0.25; } else { dx = dx * 0.6 - 0.45; dy = dy * 0.6 + 0.45; }
@@ -131,7 +131,7 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
         const url = skinUrl(state.id, p);
         return (
           <div key={p.id} className={`token ${isTurn ? 'active' : ''} ${url ? 'has-skin' : ''}`} title={p.name}
-            style={{ left: pct(c.x + dx), top: pct(c.y + dy), background: p.color, ...skinBackground(state.id, p), '--pc': p.color }}>
+            style={{ left: pct(c.x + dx), top: pct(c.y + dy), transform: s < 1 ? `scale(${s})` : undefined, background: p.color, ...skinBackground(state.id, p), '--pc': p.color }}>
             {p.isBot ? '🤖' : p.name[0]?.toUpperCase()}
           </div>
         );

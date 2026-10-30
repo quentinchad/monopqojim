@@ -43,9 +43,16 @@ export function cellCenter(i) {
 export const pct = (u) => `${(u / TOTAL) * 100}%`;
 
 // Décalage des pions quand plusieurs joueurs sont sur la même case
+// (au-delà de 6 pions : deux cercles et des pions plus petits, `s` = échelle du pion)
 export function tokenOffset(k, n) {
-  if (n <= 1) return { dx: 0, dy: 0 };
-  const a = (k / n) * Math.PI * 2 - Math.PI / 2;
-  const r = n <= 2 ? 0.2 : 0.27;
-  return { dx: Math.cos(a) * r, dy: Math.sin(a) * r };
+  if (n <= 1) return { dx: 0, dy: 0, s: 1 };
+  if (n <= 6) {
+    const a = (k / n) * Math.PI * 2 - Math.PI / 2;
+    const r = n <= 2 ? 0.2 : 0.27;
+    return { dx: Math.cos(a) * r, dy: Math.sin(a) * r, s: 1 };
+  }
+  const inner = Math.min(6, Math.floor(n / 3));
+  const ring = k < inner ? { i: k, n: inner, r: 0.15 } : { i: k - inner, n: n - inner, r: 0.34 };
+  const a = (ring.i / ring.n) * Math.PI * 2 - Math.PI / 2;
+  return { dx: Math.cos(a) * ring.r, dy: Math.sin(a) * ring.r, s: n > 10 ? 0.6 : 0.75 };
 }

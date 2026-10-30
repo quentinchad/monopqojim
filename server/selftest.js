@@ -442,3 +442,36 @@ if (!stats.botOffers || !stats.botCounters || !stats.botDeals) throw new Error('
   assert(bad, 'pari invalide refusé');
   console.log('dé spécial / roulette OK : dé', v, '· roulette', r.n);
 }
+
+// 16 joueurs, sur les deux plateaux
+{
+  const { RULES, PLAYER_COLORS } = await import('../shared/board.js');
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  assert(RULES.MAX_PLAYERS === 16 && new Set(PLAYER_COLORS).size >= 16, '16 couleurs');
+  for (const big of [false, true]) {
+    for (let g = 0; g < 10; g++) {
+      const game = new Game('X' + g);
+      game.goulagCinematicMs = 0;
+      game.settings.bigBoard = big;
+      const host = game.addPlayer({ name: 'H', token: null });
+      game.hostId = host.id;
+      for (let i = 0; i < 15; i++) game.addBot(host.id);
+      let full = false;
+      try { game.addBot(host.id); } catch { full = true; }
+      assert(full && game.players.length === 16, '16 joueurs max');
+      assert(new Set(game.players.map((p) => p.color)).size === 16 && new Set(game.players.map((p) => p.name)).size === 16, 'couleurs et noms distincts');
+      host.isBot = true; // l'hôte laisse jouer l'IA
+      game.start(host.id);
+      let now = 0, idle = 0;
+      game.botClock = () => now;
+      for (let k = 0; k < 60000 && game.phase === 'playing'; k++) {
+        now += 1000;
+        if (game.fight) { const f = game.fight; f.stop(); game.endFight(f.ids[0]); continue; }
+        if (game.auction) { game.endAuction(); continue; }
+        if (!botStep(game)) { if (++idle > 5) throw new Error('blocage à 16 joueurs'); } else idle = 0;
+      }
+      game.destroy();
+    }
+  }
+  console.log('16 joueurs OK');
+}
