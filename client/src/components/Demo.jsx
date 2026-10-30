@@ -13,6 +13,7 @@ import BustedCinematic from './BustedCinematic.jsx';
 import FightOverlay from './FightOverlay.jsx';
 import { EventBanner } from './Game.jsx';
 import { useAnimatedPositions } from '../hooks.js';
+import { CellHint } from './Game.jsx';
 import { eventSound } from '../sound.js';
 import ThemePicker from './ThemePicker.jsx';
 import SoundToggle from './SoundToggle.jsx';
@@ -169,6 +170,25 @@ export default function Demo() {
       ? { ...pr, houses: level === 'mix' ? (Number(i) % 5) + 1 : level === 'up' ? (pr.houses % 5) + 1 : level }
       : pr])),
   }));
+  // cellule du goulag : vous et Bot Berlin êtes au goulag, Bot Tokyo et Bot Rio continuent à jouer (visible sur la télé)
+  const cellView = boardView === 'cell';
+  useEffect(() => {
+    if (!cellView) return;
+    let k = 0;
+    const iv = setInterval(() => {
+      const pid = ['tokyo', 'rio'][k++ % 2];
+      const d = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+      setBoardState((s) => ({
+        ...s,
+        turn: { pid, dice: d, rollId: (s.turn?.rollId || 0) + 1 },
+        players: s.players.map((p) => (p.id === pid ? { ...p, pos: (p.pos + d[0] + d[1]) % 40 } : p)),
+      }));
+    }, 2600);
+    return () => clearInterval(iv);
+  }, [cellView]);
+  const shownBoard = useMemo(() => (cellView
+    ? { ...boardState, players: boardState.players.map((p) => (p.id === 'me' || p.id === 'berlin' ? { ...p, status: 'goulag' } : p)) }
+    : boardState), [boardState, cellView]);
   const [positions] = useAnimatedPositions(boardState.players);
   const fight = useLocalFight(!!fightMode, fightMode === 'human', () => setFightMode(null));
 
@@ -352,6 +372,13 @@ export default function Demo() {
         </section>
 
         <section className="panel">
+          <h3>⛓️ Cellule du goulag</h3>
+          <p className="muted">Au goulag, vous attendez votre duel dans une cellule en hauteur, avec vue sur tout le plateau à travers les barreaux et une télé qui retransmet la partie en direct. Ici, vous et Bot Berlin êtes au goulag pendant que Bot Tokyo et Bot Rio jouent.</p>
+          <button className={`btn ${cellView ? 'primary' : ''}`} onClick={() => setBoardView('cell')}>⛓️ Entrer dans la cellule</button>
+          <small className="muted">Cliquez dans la vue pour regarder autour, ZQSD / WASD pour bouger, Maj pour courir, Échap pour libérer la souris.</small>
+        </section>
+
+        <section className="panel">
           <h3>🎲 Dés et déplacement</h3>
           <p className="muted">Les dés roulent, puis le pion avance case par case.</p>
           <button className="btn primary" onClick={roll}>🎲 Lancer les dés</button>
@@ -359,11 +386,13 @@ export default function Demo() {
       </div>
 
       <div className="demo-board">
-        {boardView === '3d' ? (
-          <div className="board3d-wrap" style={{ width: Math.min(640, window.innerWidth - 32), height: Math.min(640, window.innerWidth - 32) }}>
+        {boardView === '3d' || cellView ? (
+          <div className={`board3d-wrap ${cellView ? 'fps' : ''}`} style={{ width: Math.min(cellView ? 900 : 640, window.innerWidth - 32), height: Math.min(cellView ? 560 : 640, window.innerWidth - 32) }}>
             <Suspense fallback={<div className="loading3d">Chargement de la 3D…</div>}>
-              <Board3D state={{ ...boardState, id: 'DEMO' }} positions={positions} onCellClick={() => {}} highlights={{}} />
+              <Board3D state={{ ...shownBoard, id: 'DEMO' }} positions={positions} onCellClick={() => {}} highlights={{}}
+                mode={cellView ? 'cell' : 'orbit'} followId="me" />
             </Suspense>
+            {cellView && <CellHint />}
           </div>
         ) : (
           <Board2D state={boardState} size={Math.min(640, window.innerWidth - 32)} positions={positions} onCellClick={() => {}}>

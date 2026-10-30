@@ -101,9 +101,24 @@ export function EventBanner({ event, state, onClose }) {
   return <div className={`event-banner ev-${event.type}`} onClick={onClose}>{event.text}</div>;
 }
 
+// aide de la vue cellule
+export function CellHint() {
+  return <div className="fps-hint">⛓️ Cellule du goulag · cliquez pour regarder autour · ZQSD / WASD pour bouger · Échap pour libérer la souris</div>;
+}
+
 export default function Game({ state, me, onLeave }) {
   useActiveBoard(state);
-  const [view, setView] = useState(() => localStorage.getItem('mq_view') || '2d');
+  const inGoulag = playerById(state, me)?.status === 'goulag';
+  const [view, setView] = useState(() => {
+    const v = localStorage.getItem('mq_view') || '2d';
+    return v === 'cell' && !inGoulag ? '2d' : v;
+  });
+  // au goulag, on attend son duel dans une cellule en vue à la première personne (on peut repasser en 2D)
+  const viewBeforeGoulag = useRef(null);
+  useEffect(() => {
+    if (inGoulag) { viewBeforeGoulag.current = view === 'cell' ? '2d' : view; setView('cell'); }
+    else if (viewBeforeGoulag.current) { setView((v) => (v === 'cell' ? viewBeforeGoulag.current : v)); viewBeforeGoulag.current = null; }
+  }, [inGoulag]);
   const [selected, setSelected] = useState(null);
   const [trade, setTrade] = useState(null); // id du joueur ciblé ou true
   const [leftOpen, setLeftOpen] = useState(true);
@@ -126,7 +141,7 @@ export default function Game({ state, me, onLeave }) {
   const [event, nextEvent, cinematicQueued] = useEventQueue(state.events, animating);
   const size = Math.max(320, Math.min(w, h) - 16);
 
-  useEffect(() => { localStorage.setItem('mq_view', view); }, [view]);
+  useEffect(() => { if (view !== 'cell') localStorage.setItem('mq_view', view); }, [view]);
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') { setSelected(null); setTrade(null); } };
     window.addEventListener('keydown', onKey);
@@ -177,6 +192,7 @@ export default function Game({ state, me, onLeave }) {
           <button className={view === '2d' ? 'active' : ''} onClick={() => setView('2d')}>Plateau 2D</button>
           <button className={view === '3d' ? 'active' : ''} onClick={() => setView('3d')}>Vue 3D</button>
           <button className={view === 'fps' ? 'active' : ''} onClick={() => setView('fps')} title="Vue à la première personne depuis votre pion">Vue FPS</button>
+          {inGoulag && <button className={view === 'cell' ? 'active' : ''} onClick={() => setView('cell')} title="Votre cellule du goulag, avec vue sur le plateau">⛓️ Cellule</button>}
         </div>
         <ThemePicker />
         <SoundToggle />
@@ -195,11 +211,12 @@ export default function Game({ state, me, onLeave }) {
             <EventBanner event={bannerEvent} state={state} onClose={nextEvent} />
           </Board2D>
         ) : (
-          <div className={`board3d-wrap ${view === 'fps' ? 'fps' : ''}`} style={{ width: w, height: h }}>
+          <div className={`board3d-wrap ${view === 'fps' || view === 'cell' ? 'fps' : ''}`} style={{ width: w, height: h }}>
             <Suspense fallback={<div className="loading3d">Chargement de la 3D…</div>}>
               <Board3D state={state} positions={positions} onCellClick={setSelected} highlights={highlights}
-                mode={view === 'fps' ? 'fps' : 'orbit'} followId={followId} />
+                mode={view === 'cell' ? 'cell' : view === 'fps' ? 'fps' : 'orbit'} followId={view === 'cell' ? me : followId} />
             </Suspense>
+            {view === 'cell' && <CellHint />}
             {view === 'fps' && (
               <div className="fps-hint">
                 👁️ {followId === me ? 'Votre pion' : `Pion de ${playerById(state, followId)?.name}`} · glissez pour regarder autour

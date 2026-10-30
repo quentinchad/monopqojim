@@ -10,6 +10,7 @@ import { flagDataUrl } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { createHijackCinematic } from '../cinematic.js';
 import { createBustedCinematic } from '../busted.js';
+import { createGoulagCell } from '../goulagCell.js';
 import { THEMES, useThemeId } from '../themes.js';
 import { buildScenery } from '../scenery.js';
 import { makeSkinModel, skinSources } from '../skin3d.js';
@@ -318,8 +319,22 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     // clics sur les cases (en ignorant les glisser-déposer de caméra)
     const ray = new THREE.Raycaster();
     let down = null;
-    const onDown = (e) => { down = { x: e.clientX, y: e.clientY }; w.fps.last = { x: e.clientX, y: e.clientY }; w.fps.dragging = true; };
+    const onDown = (e) => {
+      down = { x: e.clientX, y: e.clientY };
+      w.fps.last = { x: e.clientX, y: e.clientY };
+      w.fps.dragging = true;
+      // vue cellule : la souris est capturée pour regarder autour (Échap pour la libérer)
+      if (w.mode === 'cell' && document.pointerLockElement !== renderer.domElement) renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
+    };
     const onMove = (e) => {
+      if (w.mode === 'cell' && w.cellView) {
+        if (document.pointerLockElement === renderer.domElement) w.cellView.look(e.movementX * 0.0025, e.movementY * 0.0025);
+        else if (w.fps.dragging && e.buttons) {
+          w.cellView.look((e.clientX - w.fps.last.x) * 0.005, (e.clientY - w.fps.last.y) * 0.005);
+          w.fps.last = { x: e.clientX, y: e.clientY };
+        }
+        return;
+      }
       if (w.mode !== 'fps' || !w.fps.dragging || !e.buttons) return;
       w.fps.yaw -= (e.clientX - w.fps.last.x) * 0.006;
       w.fps.pitch = Math.max(-1, Math.min(0.7, w.fps.pitch - (e.clientY - w.fps.last.y) * 0.004));
@@ -329,7 +344,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     renderer.domElement.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onRelease);
     const onUp = (e) => {
-      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+      if (w.mode === 'cell' || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
       const rect = renderer.domElement.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
       ray.setFromCamera(ndc, camera);
@@ -379,6 +394,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
           controls.enabled = w.mode !== 'fps';
           cineEndRef.current?.();
         }
+      } else if (w.mode === 'cell' && w.cellView) {
+        // la cellule pilote la caméra (voir plus bas)
       } else if (tokF) {
         // caméra à hauteur des yeux du pion, regard vers les cases à venir
         const f = w.fps;
@@ -412,6 +429,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
         const targetY = CELL_H / 2 + (hl ? 0.12 + Math.sin(w.t * 6) * 0.04 : 0);
         c.group.position.y += (targetY - c.group.position.y) * 0.2;
       }
+      w.cellView?.update(dt, w.t, camera, w.mode === 'cell' && !w.cine);
       w.scenery?.update(w.t);
       // en vue FPS la caméra est sur le plateau : rien à estomper
       if (w.mode !== 'fps' || w.cine) w.scenery?.fadeOccluders(camera, w.cine ? new THREE.Vector3() : controls.target, dt);
@@ -419,8 +437,16 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     };
     tick();
 
+    // la cellule du goulag n'est construite qu'au besoin (vue cellule, ou joueurs au goulag)
+    w.ensureCell = () => {
+      if (!w.cellView) w.cellView = createGoulagCell({ scene });
+      return w.cellView;
+    };
+
     return () => {
       cancelAnimationFrame(w.raf);
+      if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
+      w.cellView?.dispose();
       w.scenery?.dispose();
       window.removeEventListener('pointerup', onRelease);
       ro.disconnect();
@@ -493,6 +519,16 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
   useEffect(() => {
     const w = world.current;
     if (!w) return;
+    // cellule du goulag : visible dès qu'un joueur y est, avec sa télé qui suit la partie
+    w.refreshCell = () => {
+      const prisoners = state.players.filter((p) => p.status === 'goulag');
+      if (w.mode === 'cell' || prisoners.length) {
+        const cv = w.ensureCell();
+        cv.root.visible = true;
+        cv.drawTV(state, positions);
+      } else if (w.cellView) w.cellView.root.visible = false;
+    };
+    w.refreshCell();
     const alive = state.players.filter((p) => p.status === 'alive');
     const byCell = {};
     for (const p of alive) (byCell[positions[p.id] ?? p.pos] ||= []).push(p);
@@ -558,12 +594,15 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     w.followId = followId;
     if (w.mode === mode) return;
     w.mode = mode;
-    const fps = mode === 'fps';
+    const fps = mode === 'fps' || mode === 'cell';
     w.controls.enabled = !fps;
-    w.camera.fov = fps ? 75 : 42;
+    w.camera.fov = mode === 'cell' ? 70 : fps ? 75 : 42;
     w.camera.near = fps ? 0.03 : 0.1;
     w.camera.updateProjectionMatrix();
     Object.assign(w.fps, { yaw: 0, pitch: 0, look: null, eye: null });
+    if (mode === 'cell') w.ensureCell().reset();
+    else if (document.pointerLockElement === w.renderer.domElement) document.exitPointerLock();
+    w.refreshCell?.();
     if (!fps) {
       w.camera.position.copy(orbitCamera());
       w.controls.target.set(0, 0, 0);
