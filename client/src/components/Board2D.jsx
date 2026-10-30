@@ -1,5 +1,6 @@
 import React from 'react';
-import { BOARD, COUNTRIES } from '../../../shared/board.js';
+import { COUNTRIES } from '../../../shared/board.js';
+import { BOARD, JAIL } from '../activeBoard.js';
 import { cellRect, cellCenter, pct, tokenOffset, CORNER, TOTAL } from '../layout.js';
 import { flagSvg } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
@@ -98,7 +99,7 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
   }
 
   return (
-    <div className="board2d" style={{ width: size, height: size, fontSize: size / 80 }}>
+    <div className="board2d" style={{ width: size, height: size, fontSize: (size / 80) * (12.2 / TOTAL) }}>
       {BOARD.map((cell) => {
         const r = cellRect(cell.index);
         const prop = state.props[cell.index];
@@ -122,7 +123,7 @@ export default function Board2D({ state, size, positions, onCellClick, highlight
       {Object.entries(byCell).flatMap(([pos, list]) => list.map((p, k) => {
         const c = cellCenter(+pos);
         let { dx, dy } = tokenOffset(k, list.length);
-        if (+pos === 10) {
+        if (+pos === JAIL) {
           // dans la prison : en haut à droite ; en visite : sur le bord
           if (p.jail.in) { dx = dx * 0.6 + 0.25; dy = dy * 0.6 - 0.25; } else { dx = dx * 0.6 - 0.45; dy = dy * 0.6 + 0.45; }
         }

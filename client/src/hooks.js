@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { sfx } from './sound.js';
+import { BOARD_N, JAIL } from './activeBoard.js';
 
 const DICE_DELAY = 700; // laisse les dés finir de rouler avant que le pion bouge
 const STEP_MS = 125;
@@ -16,21 +17,21 @@ export function useAnimatedPositions(players) {
     const now = Date.now();
     for (const p of players) {
       const cur = disp[p.id] ?? p.pos;
-      const dist = (p.pos - cur + 40) % 40;
+      const dist = (p.pos - cur + BOARD_N) % BOARD_N;
       if (dist === 0) { delete targets.current[p.id]; continue; }
       const prev = targets.current[p.id];
       const startAt = prev ? prev.startAt : now + DICE_DELAY;
       // envoyé en prison : le pion avance d'abord jusqu'à la case qui l'y envoie, puis saute en prison
-      const jailed = p.jail.in && p.pos === 10;
-      if (jailed && p.jailFrom != null && p.jailFrom !== 10) {
-        const toFrom = (p.jailFrom - cur + 40) % 40;
+      const jailed = p.jail.in && p.pos === JAIL;
+      if (jailed && p.jailFrom != null && p.jailFrom !== JAIL) {
+        const toFrom = (p.jailFrom - cur + BOARD_N) % BOARD_N;
         if (toFrom > 0 && toFrom <= 12) {
-          targets.current[p.id] = { to: p.jailFrom, jump: false, startAt, then: 10 };
+          targets.current[p.id] = { to: p.jailFrom, jump: false, startAt, then: JAIL };
           continue;
         }
       }
       // téléportations : prison, recul de 3 cases
-      const jump = dist > 36 || jailed;
+      const jump = dist > BOARD_N - 4 || jailed;
       targets.current[p.id] = { to: p.pos, jump, startAt };
     }
   }, [sig]);
@@ -45,7 +46,7 @@ export function useAnimatedPositions(players) {
         for (const [id, tg] of Object.entries(t)) {
           if (now < tg.startAt) continue;
           if (tg.jump || next[id] == null) next[id] = tg.to;
-          else if (next[id] !== tg.to) { next[id] = (next[id] + 1) % 40; sfx.step(); }
+          else if (next[id] !== tg.to) { next[id] = (next[id] + 1) % BOARD_N; sfx.step(); }
           if (next[id] === tg.to) {
             // étape suivante éventuelle (prison) après une courte pause sur la case
             if (tg.then != null) t[id] = { to: tg.then, jump: true, startAt: now + 500 };

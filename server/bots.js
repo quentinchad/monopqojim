@@ -1,5 +1,5 @@
 // IA simple pour les bots (et pour les joueurs déconnectés depuis trop longtemps).
-import { BOARD, COUNTRY_CELLS, housePrice } from '../shared/board.js';
+import { housePrice } from '../shared/board.js';
 
 // Un joueur humain déconnecté n'est PAS remplacé pendant le décompte (la partie l'attend) ;
 // une fois le décompte écoulé, un bot joue à sa place jusqu'à son retour.
@@ -11,16 +11,16 @@ const owned = (game, p) => Object.keys(game.props).map(Number).filter((i) => gam
 
 // Valeur estimée d'une propriété pour un joueur (bonus si elle complète un pays)
 function valueFor(game, p, index, extraOwned = []) {
-  const cell = BOARD[index];
+  const cell = game.B.cells[index];
   let v = cell.price;
   if (cell.type === 'city') {
-    const group = COUNTRY_CELLS[cell.country];
+    const group = game.B.countryCells[cell.country];
     const have = group.filter((i) => game.props[i].owner === p.id || extraOwned.includes(i) || i === index).length;
     if (have === group.length) v *= 1.8;
     else if (have === group.length - 1) v *= 1.25;
   }
   if (cell.type === 'airport') {
-    const n = BOARD.filter((c) => c.type === 'airport' && game.props[c.index].owner === p.id).length;
+    const n = game.B.cells.filter((c) => c.type === 'airport' && game.props[c.index].owner === p.id).length;
     v *= 1 + n * 0.2;
   }
   return v;
@@ -123,7 +123,7 @@ function proposeTrade(game, p) {
   if (game.trades.some((t) => t.from === p.id)) return false;
 
   const deals = [];
-  for (const [country, cells] of Object.entries(COUNTRY_CELLS)) {
+  for (const [country, cells] of Object.entries(game.B.countryCells)) {
     if (cells.some((i) => game.props[i].houses > 0)) continue;
     const mine = cells.filter((i) => game.props[i].owner === p.id);
     const missing = cells.filter((i) => game.props[i].owner !== p.id);
@@ -148,9 +148,9 @@ function proposeTrade(game, p) {
   // un bien qui intéresse l'autre (il possède déjà des villes du même pays) peut remplacer une partie de l'argent
   let sweetener = null;
   for (const i of owned(game, p)) {
-    const cell = BOARD[i];
+    const cell = game.B.cells[i];
     if (game.groupHasBuildings(i) || (cell.type === 'city' && cell.country === d.country)) continue;
-    if (cell.type === 'city' && COUNTRY_CELLS[cell.country].some((j) => j !== i && game.props[j].owner === p.id)) continue;
+    if (cell.type === 'city' && game.B.countryCells[cell.country].some((j) => j !== i && game.props[j].owner === p.id)) continue;
     const forThem = valueFor(game, d.target, i, [i]);
     const cost = valueFor(game, p, i) * 1.1;
     if (forThem > cost * 1.1 && (!sweetener || forThem - cost > sweetener.forThem - sweetener.cost)) sweetener = { i, forThem, cost };
@@ -181,16 +181,28 @@ function handleTrades(game, bots) {
   return false;
 }
 
+// Dé spécial : le bot le joue s'il tombe pile sur une propriété libre qu'il peut s'offrir, ou chez lui
+function specialDieWorthIt(game, p) {
+  const B = game.B;
+  for (const v of p.specialDice || []) {
+    const cell = B.cells[(p.pos + v) % B.n];
+    const prop = game.props[cell.index];
+    if (prop && !prop.owner && cell.price <= p.money - 100 && valueFor(game, p, cell.index) > cell.price) return v;
+    if (prop && prop.owner === p.id && Math.random() < 0.3) return v;
+  }
+  return null;
+}
+
 function tryBuild(game, p) {
   if (game.turn?.pid !== p.id) return false;
   const reserve = 250;
-  for (const country of Object.keys(COUNTRY_CELLS)) {
+  for (const country of Object.keys(game.B.countryCells)) {
     if (!game.ownsCountry(p.id, country)) continue;
-    const cells = COUNTRY_CELLS[country];
+    const cells = game.B.countryCells[country];
     const min = Math.min(...cells.map((i) => game.props[i].houses));
     if (min >= 5) continue;
     const target = cells.find((i) => game.props[i].houses === min);
-    if (p.money - housePrice(BOARD[target]) >= reserve && tryAct(game, p, { type: 'build', cell: target })) return true;
+    if (p.money - housePrice(game.B.cells[target]) >= reserve && tryAct(game, p, { type: 'build', cell: target })) return true;
   }
   return false;
 }
@@ -223,7 +235,7 @@ export function botStep(game) {
   const t = game.turn;
   const pend = t.pending;
   if (pend?.type === 'buy') {
-    const cell = BOARD[pend.cell];
+    const cell = game.B.cells[pend.cell];
     const v = valueFor(game, p, pend.cell);
     const want = p.money >= cell.price && (p.money - cell.price >= 120 || v > cell.price * 1.5);
     if (want) return tryAct(game, p, { type: 'buy' });
@@ -237,7 +249,14 @@ export function botStep(game) {
   if (pend?.type === 'casino') {
     // tente sa chance une ou deux fois avec une petite mise quand il est à l'aise
     const bet = Math.floor(p.money * 0.08);
-    if (pend.spins < 2 && p.money > 400 && Math.random() < 0.6) return tryAct(game, p, { type: 'casinoSpin', bet });
+    if (pend.spins < 2 && p.money > 400 && Math.random() < 0.6) {
+      // roulette une fois sur deux : rouge ou noir, parfois un numéro porte-bonheur
+      if (Math.random() < 0.5) {
+        const on = Math.random() < 0.15 ? Math.floor(Math.random() * 37) : Math.random() < 0.5 ? 'red' : 'black';
+        return tryAct(game, p, { type: 'rouletteSpin', bet, on });
+      }
+      return tryAct(game, p, { type: 'casinoSpin', bet });
+    }
     return tryAct(game, p, { type: 'casinoLeave' });
   }
   if (t.phase === 'roll') {
@@ -246,6 +265,8 @@ export function botStep(game) {
       if (p.money > 400 && tryAct(game, p, { type: 'payJail' })) return true;
     }
     if (tryBuild(game, p)) return true;
+    const die = !p.jail.in && specialDieWorthIt(game, p);
+    if (die != null && tryAct(game, p, { type: 'useSpecialDie', value: die })) return true;
     return tryAct(game, p, { type: 'roll' });
   }
   if (t.phase === 'done') {

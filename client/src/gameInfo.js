@@ -1,5 +1,6 @@
 // Fonctions d'aide côté client pour calculer loyers et infos d'affichage.
-import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS } from '../../shared/board.js';
+import { COUNTRIES, AIRPORT_RENTS } from '../../shared/board.js';
+import { BOARD, COUNTRY_CELLS } from './activeBoard.js';
 
 export const money = (n) => `${n < 0 ? '-' : ''}${Math.abs(Math.round(n)).toLocaleString('fr-FR')} $`;
 
@@ -27,7 +28,7 @@ export function currentRent(state, index) {
   }
   if (cell.type === 'utility') {
     const n = BOARD.filter((c) => c.type === 'utility' && state.props[c.index]?.owner === prop.owner).length;
-    return `${n === 2 ? 10 : 4}× dés`;
+    return `${[4, 10, 20][n - 1]}× dés`;
   }
   return null;
 }

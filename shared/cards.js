@@ -3,10 +3,10 @@
 
 export const CHANCE_CARDS = [
   { id: 'c_go', text: 'Avancez jusqu’à la case Départ. Recevez 200 $.', action: { kind: 'moveTo', to: 0 } },
-  { id: 'c_rome', text: 'Escapade romaine : rendez-vous à Rome.', action: { kind: 'moveTo', to: 24 } },
-  { id: 'c_ny', text: 'Direction Times Square : rendez-vous à New York.', action: { kind: 'moveTo', to: 39 } },
-  { id: 'c_madrid', text: 'Match au Bernabéu : rendez-vous à Madrid.', action: { kind: 'moveTo', to: 13 } },
-  { id: 'c_cdg', text: 'Vol pour l’aéroport Charles de Gaulle.', action: { kind: 'moveTo', to: 15 } },
+  { id: 'c_rome', text: 'Escapade romaine : rendez-vous à Rome.', action: { kind: 'moveTo', cell: 'Rome' } },
+  { id: 'c_ny', text: 'Direction Times Square : rendez-vous à New York.', action: { kind: 'moveTo', cell: 'New York' } },
+  { id: 'c_madrid', text: 'Match au Bernabéu : rendez-vous à Madrid.', action: { kind: 'moveTo', cell: 'Madrid' } },
+  { id: 'c_cdg', text: 'Vol pour l’aéroport Charles de Gaulle.', action: { kind: 'moveTo', cell: 'Aéroport Charles de Gaulle' } },
   { id: 'c_airport', text: 'Avancez jusqu’à l’aéroport le plus proche. S’il appartient à un joueur, payez le double du loyer.', action: { kind: 'nearest', target: 'airport' } },
   { id: 'c_airport2', text: 'Avancez jusqu’à l’aéroport le plus proche. S’il appartient à un joueur, payez le double du loyer.', action: { kind: 'nearest', target: 'airport' } },
   { id: 'c_utility', text: 'Avancez jusqu’à la compagnie la plus proche. Si elle appartient à un joueur, payez 10 × les dés.', action: { kind: 'nearest', target: 'utility' } },
@@ -22,6 +22,8 @@ export const CHANCE_CARDS = [
   { id: 'c_traffic2', text: '💊 Un cartel vous recrute ! Livrez la marchandise : bonus au prochain passage par Départ, mais peine doublée si vous êtes arrêté.', action: { kind: 'traffic' } },
   { id: 'c_swap', text: '🔀 Échange forcé ! Une de vos villes est échangée au hasard contre une ville d’un autre joueur.', action: { kind: 'swap' } },
   { id: 'c_vichy', text: '🤝 Régime de Vichy ! Vous collaborez avec un joueur tiré au hasard : pendant 5 tours de table, vous ne vous payez plus de loyer, vos villes comptent ensemble et vous partagez les loyers encaissés.', action: { kind: 'vichy' } },
+  { id: 'c_die', text: '🎲 Dé spécial ! Vous gagnez un dé truqué qui fait toujours {n}. Gardez-le et jouez-le à la place des dés quand vous voulez.', action: { kind: 'specialDie' } },
+  { id: 'c_die2', text: '🎲 Un croupier vous glisse un dé pipé qui fait toujours {n}. Jouez-le à la place des dés quand vous voulez.', action: { kind: 'specialDie' } },
   { id: 'c_swap2', text: '🔀 Accord diplomatique imposé ! Échange forcé d’une de vos villes contre celle d’un adversaire.', action: { kind: 'swap' } },
 ];
 

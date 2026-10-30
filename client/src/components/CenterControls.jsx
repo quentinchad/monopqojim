@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BOARD, COUNTRIES, RULES } from '../../../shared/board.js';
+import { COUNTRIES, RULES } from '../../../shared/board.js';
+import { BOARD } from '../activeBoard.js';
 import { act } from '../net.js';
 import { money, playerById } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
 import SlotMachine from './SlotMachine.jsx';
+import Roulette from './Roulette.jsx';
 import { sfx } from '../sound.js';
 
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -32,6 +34,8 @@ export function Dice({ turn }) {
     const to = setTimeout(() => { clearInterval(iv); setRolling(false); setShown(turn.dice); }, 650);
     return () => { clearInterval(iv); clearTimeout(to); };
   }, [turn?.rollId, turn?.pid]);
+  // dé spécial : un seul dé doré qui affiche sa valeur
+  if (!rolling && turn?.special) return <div className="dice"><div className="die special" title="Dé spécial">{turn.dice[0]}</div></div>;
   return <div className="dice"><Die v={shown[0]} rolling={rolling} /><Die v={shown[1]} rolling={rolling} /></div>;
 }
 
@@ -147,9 +151,21 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
         </div>
       );
     } else if (pend?.type === 'casino') {
+      const roulette = pend.game === 'roulette';
       body = (
-        <SlotMachine spin={pend.last} spinsDone={pend.spins} interactive maxBet={Math.max(0, meP.money)} player={meP}
-          onSpin={(bet) => act('casinoSpin', { bet })} onLeave={() => act('casinoLeave')} />
+        <div className="casino">
+          <div className="casino-tabs">
+            <button className={!roulette ? 'active' : ''} onClick={() => roulette && act('casinoGame', { game: 'slots' })}>🎰 Machine à sous</button>
+            <button className={roulette ? 'active' : ''} onClick={() => !roulette && act('casinoGame', { game: 'roulette' })}>🎡 Roulette</button>
+          </div>
+          {roulette ? (
+            <Roulette result={pend.roulette} spinsDone={pend.spins} interactive maxBet={Math.max(0, meP.money)} player={meP}
+              onSpin={(bet, on) => act('rouletteSpin', { bet, on })} onLeave={() => act('casinoLeave')} />
+          ) : (
+            <SlotMachine spin={pend.last} spinsDone={pend.spins} interactive maxBet={Math.max(0, meP.money)} player={meP}
+              onSpin={(bet) => act('casinoSpin', { bet })} onLeave={() => act('casinoLeave')} />
+          )}
+        </div>
       );
     } else if (pend?.type === 'hijack') {
       body = (
@@ -179,13 +195,27 @@ export default function CenterControls({ state, me, onLeave, animating, onShowSt
             </div>
           )}
           <button className="btn primary big" onClick={() => act('roll')}>🎲 {meP.jail.in ? 'Tenter un double' : t.rolled ? 'Relancer (double !)' : 'Lancer les dés'}</button>
+          {!meP.jail.in && meP.specialDice?.length > 0 && (
+            <div className="special-dice">
+              <small>Ou jouez un dé spécial (avance exactement de sa valeur) :</small>
+              <div className="row">
+                {[...new Set(meP.specialDice)].map((v) => (
+                  <button key={v} className="btn special-die-btn" onClick={() => act('useSpecialDie', { value: v })}>
+                    <span className="die special mini">{v}</span> Jouer le {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     } else if (t.phase === 'done') {
       body = <button className="btn primary big" onClick={() => act('endTurn')}>Terminer le tour ➜</button>;
     }
   } else if (cur && t.pending?.type === 'casino') {
-    body = <SlotMachine spin={t.pending.last} spinsDone={t.pending.spins} player={cur} size={60} />;
+    body = t.pending.game === 'roulette'
+      ? <Roulette result={t.pending.roulette} spinsDone={t.pending.spins} player={cur} size={150} />
+      : <SlotMachine spin={t.pending.last} spinsDone={t.pending.spins} player={cur} size={60} />;
   } else if (cur) {
     body = (
       <div className="status-msg">

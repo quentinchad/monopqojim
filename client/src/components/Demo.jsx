@@ -1,10 +1,12 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD, COUNTRY_CELLS, OWNABLE, RULES, CASINO, PLAYER_COLORS, casinoPayout } from '../../../shared/board.js';
+import { RULES, CASINO, PLAYER_COLORS, casinoPayout } from '../../../shared/board.js';
+import { BOARD, COUNTRY_CELLS, OWNABLE } from '../activeBoard.js';
 import { Fight, ARENA } from '../../../server/fight.js';
 import { Game } from '../../../server/game.js';
 import { botStep } from '../../../server/bots.js';
 import EndGameStats from './EndGameStats.jsx';
 import Board2D from './Board2D.jsx';
+import { useActiveBoard } from '../activeBoard.js';
 import { Dice } from './CenterControls.jsx';
 import HijackCinematic from './HijackCinematic.jsx';
 import BustedCinematic from './BustedCinematic.jsx';
@@ -134,6 +136,7 @@ function useLocalFight(active, withHuman, onEnd) {
 }
 
 export default function Demo() {
+  useActiveBoard(null); // la démo utilise le plateau classique
   const [airport, setAirport] = useState(15);
   const [target, setTarget] = useState(-1); // -1 : au hasard, comme en partie
   const [hijack, setHijack] = useState(null);

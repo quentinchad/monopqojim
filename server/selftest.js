@@ -363,3 +363,82 @@ if (!stats.botOffers || !stats.botCounters || !stats.botDeals) throw new Error('
   game.destroy();
   console.log('négatif / détournement / prison / Vichy OK');
 }
+
+// Grand plateau : parties de bots complètes, cartes « aller à » résolues par nom
+{
+  const { BOARDS } = await import('../shared/board.js');
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const B = BOARDS.big;
+  assert(B.n === 56 && B.side === 14 && B.jail === 14 && B.gotojail === 42, 'géométrie du grand plateau');
+  assert(Object.keys(B.countryCells).length === 12 && B.cells[28].type === 'parking', 'pays et coins du grand plateau');
+  let ended = 0, maxPos = 0, stalls = 0;
+  for (let g = 0; g < 60; g++) {
+    const game = new Game('BIG' + g);
+    game.goulagCinematicMs = 0;
+    game.settings.bigBoard = true;
+    for (let i = 0; i < 4; i++) game.addPlayer({ name: 'B' + i, token: null, isBot: true });
+    game.hostId = game.players[0].id;
+    game.start(game.hostId);
+    assert(Object.keys(game.props).length === B.ownable.length, 'propriétés du grand plateau');
+    let now = 0, idle = 0;
+    game.botClock = () => now;
+    for (let k = 0; k < 30000 && game.phase === 'playing'; k++) {
+      now += 1000;
+      if (game.fight) { const f = game.fight; f.stop(); game.endFight(f.ids[0]); continue; }
+      if (game.auction) { game.endAuction(); continue; }
+      if (!botStep(game)) { if (++idle > 5) { stalls++; break; } } else idle = 0;
+      for (const p of game.players) { maxPos = Math.max(maxPos, p.pos); if (p.jail.in) assert(p.pos === B.jail, 'prison du grand plateau'); }
+    }
+    if (game.phase === 'ended') ended++;
+    game.destroy();
+  }
+  assert(!stalls && maxPos > 40, `grand plateau : ${stalls} blocages, case max ${maxPos}`);
+  // carte « Rendez-vous à Rome » : la bonne case sur chaque plateau
+  for (const big of [false, true]) {
+    const game = new Game('ROME');
+    game.settings.bigBoard = big;
+    const a = game.addPlayer({ name: 'A', token: null });
+    game.addPlayer({ name: 'C', token: null });
+    game.hostId = a.id;
+    game.start(a.id);
+    const p = game.current;
+    game.applyCard(p, { action: { kind: 'moveTo', cell: 'Rome' } });
+    assert(game.B.cells[p.pos].name === 'Rome', 'carte Rome');
+  }
+  console.log('grand plateau OK :', ended, 'parties terminées sur 60');
+}
+
+// Dé spécial et roulette
+{
+  const { ROULETTE, roulettePayout } = await import('../shared/board.js');
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  assert(roulettePayout('red', 1, 10) === 20 && roulettePayout('red', 0, 10) === 0 && roulettePayout(17, 17, 10) === 360 && roulettePayout('d3', 30, 10) === 30, 'gains roulette');
+  assert(ROULETTE.ORDER.length === 37 && new Set(ROULETTE.ORDER).size === 37, 'roue complète');
+  const game = new Game('DIE');
+  const a = game.addPlayer({ name: 'A', token: null });
+  game.addPlayer({ name: 'C', token: null });
+  game.hostId = a.id;
+  game.start(a.id);
+  const p = game.current;
+  game.decks.chance = ['c_die', ...game.decks.chance.filter((x) => x !== 'c_die')];
+  game.drawCard(p, 'chance');
+  const v = game.turn.pending.value;
+  assert(v >= 1 && v <= 12 && game.turn.pending.text.includes(String(v)) && !game.turn.pending.text.includes('{n}'), 'valeur du dé sur la carte');
+  game.handle(p.id, { type: 'cardOk' });
+  assert(p.specialDice.length === 1 && p.specialDice[0] === v, 'dé gardé');
+  game.turn.phase = 'roll'; game.turn.rolled = false; game.turn.pending = null;
+  p.pos = 0;
+  game.handle(p.id, { type: 'useSpecialDie', value: v });
+  assert(p.specialDice.length === 0 && game.turn.special && !game.turn.extraRoll, 'dé utilisé, pas de double');
+  assert(p.pos === v || p.jail.in, 'avance de la valeur du dé');
+  // roulette
+  game.turn.pending = { type: 'casino', cell: 8, spins: 0, last: null };
+  p.money = 1000;
+  game.handle(p.id, { type: 'rouletteSpin', bet: 100, on: 'red' });
+  const r = game.turn.pending.roulette;
+  assert(r && r.n >= 0 && r.n <= 36 && p.money === 900 + r.win && game.turn.pending.spins === 1, 'tour de roulette');
+  let bad = false;
+  try { game.handle(p.id, { type: 'rouletteSpin', bet: 10, on: 'violet' }); } catch { bad = true; }
+  assert(bad, 'pari invalide refusé');
+  console.log('dé spécial / roulette OK : dé', v, '· roulette', r.n);
+}

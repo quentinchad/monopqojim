@@ -24,6 +24,11 @@ const BODIES = {
   cn: `<rect width="30" height="20" fill="#DE2910"/>${star(5, 5, 3)}${star(10, 2, 1)}${star(12, 4.2, 1)}${star(12, 7, 1)}${star(10, 9, 1)}`,
   br: '<rect width="30" height="20" fill="#009C3B"/><polygon points="15,2 28,10 15,18 2,10" fill="#FFDF00"/><circle cx="15" cy="10" r="4.2" fill="#002776"/><path d="M11 9.4 Q15 8 19 10.6" stroke="#fff" stroke-width="0.7" fill="none"/>',
   us: `${usStripes}<rect width="12.6" height="${(7 * 20) / 13}" fill="#3C3B6E"/>${usStars}`,
+  // pays du grand plateau
+  mx: '<rect width="10" height="20" fill="#006847"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#CE1126"/><circle cx="15" cy="10" r="2.6" fill="#8B5A2B"/><path d="M12.6 11.6 Q15 13.6 17.4 11.6" stroke="#006847" stroke-width="0.7" fill="none"/>',
+  in: '<rect width="30" height="6.67" fill="#FF9933"/><rect y="6.67" width="30" height="6.67" fill="#fff"/><rect y="13.33" width="30" height="6.67" fill="#138808"/><circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" stroke-width="0.6"/><circle cx="15" cy="10" r="0.6" fill="#000080"/>',
+  ru: '<rect width="30" height="6.67" fill="#fff"/><rect y="6.67" width="30" height="6.67" fill="#0039A6"/><rect y="13.33" width="30" height="6.67" fill="#D52B1E"/>',
+  gb: '<rect width="30" height="20" fill="#012169"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#C8102E" stroke-width="1.6"/><path d="M15 0 V20 M0 10 H30" stroke="#fff" stroke-width="6"/><path d="M15 0 V20 M0 10 H30" stroke="#C8102E" stroke-width="3.4"/>',
 };
 
 export function flagSvg(code) {

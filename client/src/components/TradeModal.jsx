@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { BOARD, COUNTRIES } from '../../../shared/board.js';
+import { COUNTRIES } from '../../../shared/board.js';
+import { BOARD } from '../activeBoard.js';
 import { act } from '../net.js';
 import { money, playerById, groupHasBuildings } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RULES, CASINO } from '../../../shared/board.js';
+import { RULES, CASINO, ROULETTE, SPECIAL_DIE, BOARDS, COUNTRIES } from '../../../shared/board.js';
 import { CIVS } from '../../../shared/civs.js';
 
 // Fiche des règles : les bases du Monopoly et tous les ajouts propres à Monopqojim.
@@ -95,7 +95,17 @@ export function RulesSheet({ settings, onClose }) {
             <p>Carte Chance : une de vos villes est échangée au hasard contre celle d’un adversaire.</p>
           </Section>
           <Section icon="🎰" title="Casino de Macao">
-            <p>Misez la somme de votre choix à la machine à sous ({CASINO.MAX_SPINS} parties max par arrêt). Trois symboles identiques rapportent de ×{Math.min(...CASINO.SYMBOLS.map((x) => x.mult))} à ×{Math.max(...CASINO.SYMBOLS.map((x) => x.mult))} la mise, deux identiques ×{CASINO.PAIR}.</p>
+            <p>Choisissez votre jeu et misez la somme de votre choix ({CASINO.MAX_SPINS} parties max par arrêt, tous jeux confondus).</p>
+            <ul>
+              <li>Machine à sous : trois symboles identiques rapportent de ×{Math.min(...CASINO.SYMBOLS.map((x) => x.mult))} à ×{Math.max(...CASINO.SYMBOLS.map((x) => x.mult))} la mise, deux identiques ×{CASINO.PAIR}.</li>
+              <li>Roulette ({ROULETTE.ORDER.length} cases, de 0 à 36) : un numéro ×36, une douzaine ×3, rouge/noir, pair/impair, 1-18/19-36 ×2. Le 0 fait perdre les paris simples.</li>
+            </ul>
+          </Section>
+          <Section icon="🎲" title="Dé spécial">
+            <p>Carte Chance : vous gagnez un dé truqué avec un chiffre fixe (de {SPECIAL_DIE.MIN} à {SPECIAL_DIE.MAX}, tiré au moment de la pioche). Gardez-le et jouez-le quand vous voulez à la place des dés : vous avancez exactement de sa valeur (ce n’est jamais un double). Inutile en prison.</p>
+          </Section>
+          <Section icon="🗺️" title="Grand plateau" off={settings ? !s.bigBoard : false}>
+            <p>Option de l’hôte : {BOARDS.big.n} cases au lieu de {BOARDS.classic.n}, avec {Object.keys(BOARDS.big.countryCells).filter((k) => !BOARDS.classic.countryCells[k]).map((k) => COUNTRIES[k].name).join(', ')} en plus, une 3e compagnie (gaz) et des loyers un peu plus chers. Parties plus longues.</p>
           </Section>
           <Section icon="⚔️" title="Goulag" off={off('goulag')}>
             <ul>

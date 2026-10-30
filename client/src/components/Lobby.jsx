@@ -116,13 +116,15 @@ export default function Lobby({ state, me, onLeave }) {
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.jailVisitSteal ?? true} onChange={(e) => set({ jailVisitSteal: e.target.checked })} /> En simple visite à la prison, on vole {RULES.JAIL_VISIT_STEAL} $ à chaque prisonnier</label>
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.rentInJail ?? true} onChange={(e) => set({ rentInJail: e.target.checked })} /> Un joueur en prison touche quand même ses loyers</label>
             <label className="check"><input type="checkbox" disabled={!isHost} checked={s.civs ?? true} onChange={(e) => set({ civs: e.target.checked })} /> Civilisations (chaque joueur choisit le style de ses bâtiments)</label>
+            <label className="check"><input type="checkbox" disabled={!isHost} checked={!!s.bigBoard} onChange={(e) => set({ bigBoard: e.target.checked })} /> Grand plateau : 56 cases, 4 pays en plus (Mexique, Inde, Russie, Royaume-Uni) — parties plus longues</label>
           </div>
           <div className="rules-box">
             <p><b>🏙️ Villes & pays</b> — construisez maisons et hôtels quand vous possédez toutes les villes d’un pays.</p>
             <p><b>✈️ Aéroports</b> — en vous arrêtant sur un aéroport, vous pouvez payer 150 $ (50 $ si c’est le vôtre) pour détourner un avion : il s’écrase sur une ville adverse construite tirée au hasard, que l’on découvre en direct, et en détruit les maisons ou l’hôtel.</p>
             <p><b>💊 Trafic de drogue</b> — carte Chance : +300 $ au prochain passage par Départ, mais si vous allez en prison la peine est doublée (6 tours) et seul un double vous libère.</p>
             <p><b>⛓️ Goulag</b> — un joueur en faillite part au goulag (une seule fois par partie). Dès que 2 joueurs y sont et qu’il reste au moins 2 joueurs en jeu, ils s’affrontent en duel : le vainqueur revient, le perdant est éliminé.</p>
-            <p><b>🎰 Casino</b> — misez la somme de votre choix à la machine à sous (5 parties max par arrêt) : trois symboles identiques rapportent gros.</p>
+            <p><b>🎰 Casino</b> — misez la somme de votre choix à la machine à sous ou à la roulette (5 parties max par arrêt) : trois symboles identiques ou le bon numéro rapportent gros.</p>
+            <p><b>🎲 Dé spécial</b> — carte Chance : un dé truqué avec un chiffre fixe (de 1 à 12), à jouer à la place des dés quand vous voulez.</p>
             <p><b>🏦 Pas d’hypothèque</b> — pour trouver de l’argent, vendez vos bâtiments ou revendez vos propriétés à la banque (moitié du prix).</p>
             <p><b>🤝 Régime de Vichy</b> — carte Chance : vous collaborez avec un joueur tiré au hasard pendant {RULES.VICHY_ROUNDS} tours de table (3 joueurs minimum) : pas de loyer entre vous, vos villes comptent ensemble et vous partagez les loyers encaissés.</p>
             <p><b>🔀 Échange forcé</b> — carte Chance : une de vos villes est échangée au hasard avec celle d’un adversaire.</p>

@@ -3,8 +3,9 @@ import * as THREE from 'three';
 import { buildBuilding3D } from '../buildings.js';
 import { civOf } from '../../../shared/civs.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { BOARD, COUNTRIES } from '../../../shared/board.js';
-import { cellRect, cellCenter, tokenOffset, TOTAL } from '../layout.js';
+import { COUNTRIES } from '../../../shared/board.js';
+import { BOARD, BOARD_N, JAIL } from '../activeBoard.js';
+import { cellRect, cellCenter, tokenOffset, cornerRank, TOTAL } from '../layout.js';
 import { flagDataUrl } from '../flags.js';
 import { currentRent, money, playerById } from '../gameInfo.js';
 import { createHijackCinematic } from '../cinematic.js';
@@ -13,11 +14,10 @@ import { THEMES, useThemeId } from '../themes.js';
 import { buildScenery } from '../scenery.js';
 import { makeSkinModel, skinSources } from '../skin3d.js';
 
-const HALF = TOTAL / 2;
 const CELL_H = 0.14;
 const EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 const ROT = { bottom: 0, left: -Math.PI / 2, top: Math.PI, right: Math.PI / 2 };
-const CORNER_ROT = { 0: 0, 10: -Math.PI / 2, 20: Math.PI, 30: Math.PI / 2 };
+const CORNER_ROT = [0, -Math.PI / 2, Math.PI, Math.PI / 2]; // Départ, prison, parc, allez en prison
 
 // Drapeaux chargés une fois pour les textures
 const flagImages = {};
@@ -210,12 +210,13 @@ function buildHouses(group, n, depth, animate, civ) {
   b.scale.setScalar(animate ? 0.01 : BUILDING_SCALE);
 }
 
-const ORBIT_CAMERA = new THREE.Vector3(0, 15.5, 12.5);
+// recule la caméra sur le grand plateau
+const orbitCamera = () => new THREE.Vector3(0, 15.5, 12.5).multiplyScalar(TOTAL / 12.2);
 
 // Point au centre d'une case, en coordonnées 3D
 function cellWorld(i, y = 0) {
-  const c = cellCenter(((i % 40) + 40) % 40);
-  return new THREE.Vector3(c.x - HALF, y, c.y - HALF);
+  const c = cellCenter(((i % BOARD_N) + BOARD_N) % BOARD_N);
+  return new THREE.Vector3(c.x - (TOTAL / 2), y, c.y - (TOTAL / 2));
 }
 
 export default function Board3D({ state, positions, onCellClick, highlights, mode = 'orbit', followId, cinematic, onCinematicEnd, onCinematicCue }) {
@@ -242,7 +243,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog('#0d0a1a', 30, 90);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 220);
-    camera.position.copy(ORBIT_CAMERA);
+    camera.position.copy(orbitCamera());
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.maxPolarAngle = 1.3;
@@ -297,8 +298,8 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
       group.add(mesh);
       const houses = new THREE.Group();
       group.add(houses);
-      group.position.set(r.x + r.w / 2 - HALF, CELL_H / 2, r.y + r.h / 2 - HALF);
-      group.rotation.y = corner ? CORNER_ROT[cell.index] : ROT[r.side];
+      group.position.set(r.x + r.w / 2 - (TOTAL / 2), CELL_H / 2, r.y + r.h / 2 - (TOTAL / 2));
+      group.rotation.y = corner ? CORNER_ROT[cornerRank(cell.index)] : ROT[r.side];
       scene.add(group);
       return { cell, group, mesh, canvas, tex, side, houses, depth: cd, sig: '', houseCount: -1 };
     });
@@ -505,17 +506,17 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
           if (tok) w.scene.remove(tok.obj);
           const obj = makeToken(state, p);
           const c0 = cellCenter(+pos);
-          obj.position.set(c0.x - HALF, CELL_H, c0.y - HALF);
+          obj.position.set(c0.x - (TOTAL / 2), CELL_H, c0.y - (TOTAL / 2));
           w.scene.add(obj);
           tok = { obj, look, target: { x: 0, z: 0 } };
           w.tokens.set(p.id, tok);
         }
         const c = cellCenter(+pos);
         let { dx, dy } = tokenOffset(k, list.length);
-        if (+pos === 10) {
+        if (+pos === JAIL) {
           if (p.jail.in) { dx = dx * 0.6 + 0.25; dy = dy * 0.6 - 0.25; } else { dx = dx * 0.6 - 0.45; dy = dy * 0.6 + 0.45; }
         }
-        tok.target = { x: c.x + dx - HALF, z: c.y + dy - HALF };
+        tok.target = { x: c.x + dx - (TOTAL / 2), z: c.y + dy - (TOTAL / 2) };
         tok.obj.userData.ring.visible = state.turn?.pid === p.id && state.phase === 'playing';
         tok.cell = +pos;
       });
@@ -563,7 +564,7 @@ export default function Board3D({ state, positions, onCellClick, highlights, mod
     w.camera.updateProjectionMatrix();
     Object.assign(w.fps, { yaw: 0, pitch: 0, look: null, eye: null });
     if (!fps) {
-      w.camera.position.copy(ORBIT_CAMERA);
+      w.camera.position.copy(orbitCamera());
       w.controls.target.set(0, 0, 0);
       w.controls.update();
     }

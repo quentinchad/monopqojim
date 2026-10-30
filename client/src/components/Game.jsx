@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import Board2D from './Board2D.jsx';
+import { useActiveBoard } from '../activeBoard.js';
 import CenterControls from './CenterControls.jsx';
 import CellCard from './CellCard.jsx';
 import TradeModal from './TradeModal.jsx';
@@ -101,6 +102,7 @@ export function EventBanner({ event, state, onClose }) {
 }
 
 export default function Game({ state, me, onLeave }) {
+  useActiveBoard(state);
   const [view, setView] = useState(() => localStorage.getItem('mq_view') || '2d');
   const [selected, setSelected] = useState(null);
   const [trade, setTrade] = useState(null); // id du joueur ciblé ou true

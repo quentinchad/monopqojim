@@ -1,5 +1,6 @@
 import React from 'react';
-import { BOARD, COUNTRIES, COUNTRY_CELLS, AIRPORT_RENTS, RULES, CASINO, housePrice, resaleValue } from '../../../shared/board.js';
+import { COUNTRIES, AIRPORT_RENTS, RULES, CASINO, housePrice, resaleValue } from '../../../shared/board.js';
+import { BOARD, COUNTRY_CELLS } from '../activeBoard.js';
 import { act } from '../net.js';
 import { money, playerById, ownsCountry, groupHasBuildings } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
@@ -12,7 +13,7 @@ const DESCRIPTIONS = {
   chance: 'Tirez une carte Chance. Attention au trafic de drogue et aux échanges forcés !',
   chest: 'Tirez une carte Caisse de communauté.',
   tax: 'Payez la taxe à la banque (ou à la cagnotte du Parc gratuit).',
-  casino: `Machine à sous : misez la somme de votre choix, jusqu’à ${CASINO.MAX_SPINS} parties par arrêt. Trois symboles identiques : mise × 5 à × 20 (7️⃣ = × 20). Deux identiques : mise × ${CASINO.PAIR}.`,
+  casino: `Machine à sous ou roulette, au choix : misez la somme de votre choix, jusqu’à ${CASINO.MAX_SPINS} parties par arrêt. Machine à sous : trois symboles identiques = mise × 5 à × 20, deux identiques = × ${CASINO.PAIR}. Roulette : un numéro × 36, une douzaine × 3, rouge/noir, pair/impair, 1-18/19-36 × 2.`,
 };
 
 export default function CellCard({ state, me, index, onClose }) {

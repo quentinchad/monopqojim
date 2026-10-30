@@ -1,20 +1,33 @@
-// Géométrie du plateau : 11 × 11 cases, les coins font 1.6 unité, les autres 1 unité.
+// Géométrie du plateau : SIDE × SIDE cases (11 sur le plateau classique, 15 sur le grand),
+// les coins font 1.6 unité, les autres 1 unité. Réglée par setBoardSide quand une partie s'affiche.
 export const CORNER = 1.6;
-export const TOTAL = CORNER * 2 + 9; // 12.2 unités
+export let SIDE = 11;
+export let TOTAL = CORNER * 2 + SIDE - 2; // 12.2 unités sur le plateau classique
+let S = SIDE - 1; // index du dernier rang
 
-const colStart = (c) => (c === 0 ? 0 : CORNER + (c - 1)); // c : 0..10
-const colWidth = (c) => (c === 0 || c === 10 ? CORNER : 1);
+export function setBoardSide(side) {
+  if (side === SIDE) return;
+  SIDE = side;
+  S = side - 1;
+  TOTAL = CORNER * 2 + side - 2;
+}
+
+const colStart = (c) => (c === 0 ? 0 : CORNER + (c - 1)); // c : 0..S
+const colWidth = (c) => (c === 0 || c === S ? CORNER : 1);
 
 export function cellGrid(i) {
-  if (i === 0) return { col: 10, row: 10, side: 'corner' };
-  if (i < 10) return { col: 10 - i, row: 10, side: 'bottom' };
-  if (i === 10) return { col: 0, row: 10, side: 'corner' };
-  if (i < 20) return { col: 0, row: 20 - i, side: 'left' };
-  if (i === 20) return { col: 0, row: 0, side: 'corner' };
-  if (i < 30) return { col: i - 20, row: 0, side: 'top' };
-  if (i === 30) return { col: 10, row: 0, side: 'corner' };
-  return { col: 10, row: i - 30, side: 'right' };
+  if (i === 0) return { col: S, row: S, side: 'corner' };
+  if (i < S) return { col: S - i, row: S, side: 'bottom' };
+  if (i === S) return { col: 0, row: S, side: 'corner' };
+  if (i < 2 * S) return { col: 0, row: 2 * S - i, side: 'left' };
+  if (i === 2 * S) return { col: 0, row: 0, side: 'corner' };
+  if (i < 3 * S) return { col: i - 2 * S, row: 0, side: 'top' };
+  if (i === 3 * S) return { col: S, row: 0, side: 'corner' };
+  return { col: S, row: i - 3 * S, side: 'right' };
 }
+
+// orientation d'un coin (0 : Départ, 1 : prison, 2 : parc, 3 : allez en prison)
+export const cornerRank = (i) => i / S;
 
 // Rectangle d'une case en unités de plateau (origine en haut à gauche)
 export function cellRect(i) {

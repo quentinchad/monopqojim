@@ -164,6 +164,7 @@ io.on('connection', (socket) => {
       if (op === 'money') me.money = d.amount;
       if (op === 'pos') me.pos = d.pos;
       if (op === 'traffic') me.trafficking = true;
+      if (op === 'die') me.specialDice.push(...d.values);
       if (op === 'hotels') {
         // un adversaire possède toute l'Allemagne avec des hôtels
         for (const i of [16, 18, 19]) Object.assign(game.props[i], { owner: others[0].id, houses: 5 });
@@ -184,7 +185,7 @@ io.on('connection', (socket) => {
       }
       if (op === 'jail') {
         // un adversaire est en prison, pour tester la simple visite
-        Object.assign(others[0], { pos: 10, jail: { in: true, turns: 0, heavy: false } });
+        Object.assign(others[0], { pos: game.B.jail, jail: { in: true, turns: 0, heavy: false } });
       }
       if (op === 'fight') {
         // envoie le joueur et un bot au goulag pour tester le duel

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import Avatar from './Avatar.jsx';
-import { BOARD } from '../../../shared/board.js';
+import { BOARD } from '../activeBoard.js';
 import { useElementSize } from '../hooks.js';
 import { money, finalRanking } from '../gameInfo.js';
 

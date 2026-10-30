@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { BOARD } from '../../../shared/board.js';
+import { BOARD } from '../activeBoard.js';
 import { playerById } from '../gameInfo.js';
 import { HIJACK_DURATION, T_IMPACT } from '../cinematic.js';
 import { hijackSound } from '../sound.js';

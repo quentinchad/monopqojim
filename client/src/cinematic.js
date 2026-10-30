@@ -1,8 +1,8 @@
 // Cinématique 3D du détournement d'avion : décollage depuis l'aéroport, vol, crash sur les bâtiments visés, explosion.
 import * as THREE from 'three';
 import { cellCenter, TOTAL } from './layout.js';
+import { BOARD_N } from './activeBoard.js';
 
-const HALF = TOTAL / 2;
 export const HIJACK_DURATION = 9.2; // secondes
 
 const T_TAKEOFF = 1.4; // début du roulage
@@ -14,8 +14,8 @@ const easeIn = (x) => x * x * x;
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 function cellWorld(i, y = 0) {
-  const c = cellCenter(((i % 40) + 40) % 40);
-  return new THREE.Vector3(c.x - HALF, y, c.y - HALF);
+  const c = cellCenter(((i % BOARD_N) + BOARD_N) % BOARD_N);
+  return new THREE.Vector3(c.x - (TOTAL / 2), y, c.y - (TOTAL / 2));
 }
 
 function bezier(p0, p1, p2, p3, t) {

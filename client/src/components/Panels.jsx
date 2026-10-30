@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar.jsx';
-import { BOARD, COUNTRIES, COUNTRY_CELLS } from '../../../shared/board.js';
+import { COUNTRIES } from '../../../shared/board.js';
+import { BOARD, COUNTRY_CELLS } from '../activeBoard.js';
 import { act } from '../net.js';
 import { money, playerById, ownsCountry } from '../gameInfo.js';
 import { flagSvg } from '../flags.js';
@@ -30,6 +31,7 @@ export function PlayersPanel({ state, me, onTrade, onHover, hoverPid }) {
                 {p.status === 'alive' && p.jail.in && <span title={p.jail.heavy ? 'En prison (peine doublée)' : 'En prison'}> 🚔</span>}
                 {p.trafficking && <span title="Transporte de la drogue"> 💊</span>}
                 {p.jailCards.length > 0 && <span title="Carte libéré de prison"> 🎫</span>}
+                {p.specialDice?.length > 0 && <span title={`Dé spécial : ${p.specialDice.join(', ')}`}> 🎲{p.specialDice.join('·')}</span>}
                 {p.status === 'goulag' && <span title="Au goulag"> ⛓️</span>}
                 {p.status === 'eliminated' && <span title="Éliminé"> 💀</span>}
                 {!p.connected && !p.isBot && !p.botControlled && <span title={p.abandonIn != null ? 'Déconnecté : un bot le remplacera à la fin du décompte' : 'Déconnecté'}> 📴</span>}

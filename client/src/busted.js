@@ -2,9 +2,9 @@
 // puis « BUSTED » façon GTA (le texte et le noir et blanc sont gérés par la page, au signal onBusted).
 import * as THREE from 'three';
 import { cellCenter, TOTAL } from './layout.js';
+import { BOARD_N, JAIL } from './activeBoard.js';
 import { makeSkinModel } from './skin3d.js';
 
-const HALF = TOTAL / 2;
 const GROUND = 0.14;
 export const BUSTED_DURATION = 7.8; // secondes
 const T_CHASE = 1.1;
@@ -14,8 +14,8 @@ export const T_BUSTED = 4.9;
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 function cellWorld(i) {
-  const c = cellCenter(((i % 40) + 40) % 40);
-  return new THREE.Vector3(c.x - HALF, GROUND, c.y - HALF);
+  const c = cellCenter(((i % BOARD_N) + BOARD_N) % BOARD_N);
+  return new THREE.Vector3(c.x - (TOTAL / 2), GROUND, c.y - (TOTAL / 2));
 }
 
 function std(color, extra = {}) {
@@ -113,7 +113,7 @@ function makePoliceCar() {
 }
 
 export function createBustedCinematic({ scene, camera, from, color = '#ef4444', skin, src, faceSrc, onBusted }) {
-  const J = cellWorld(10);
+  const J = cellWorld(JAIL);
   let S = cellWorld(from);
   // déjà sur la case Prison (trafiquant contrôlé) : la fuite part de l'intérieur du plateau
   if (S.distanceTo(J) < 3) S = J.clone().add(new THREE.Vector3(-J.x, 0, -J.z).normalize().multiplyScalar(6.5)).setY(GROUND);

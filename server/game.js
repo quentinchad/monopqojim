@@ -1,6 +1,6 @@
 import {
-  BOARD, RULES, CASINO, COUNTRIES, COUNTRY_CELLS, OWNABLE, AIRPORT_RENTS, PLAYER_COLORS,
-  housePrice, casinoPayout, resaleValue,
+  RULES, CASINO, COUNTRIES, AIRPORT_RENTS, PLAYER_COLORS, boardFor,
+  housePrice, casinoPayout, resaleValue, ROULETTE, rouletteColor, validRouletteBet, roulettePayout, rouletteBetLabel, SPECIAL_DIE,
 } from '../shared/board.js';
 import { CHANCE_CARDS, CHEST_CARDS } from '../shared/cards.js';
 import { Fight } from './fight.js';
@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS = {
   auction: false,
   rentInJail: true, // un propriétaire en prison touche quand même ses loyers
   civs: true, // civilisations (style des bâtiments)
+  bigBoard: false, // grand plateau : 56 cases et 4 pays en plus
   freeParkingPot: true,
   goulag: true,
   goulagMoney: RULES.GOULAG_RETURN_MONEY,
@@ -106,7 +107,7 @@ export class Game {
       name: String(name || 'Joueur').trim().slice(0, 20) || 'Joueur',
       color, money: 0, pos: 0,
       jail: { in: false, turns: 0, heavy: false },
-      jailCards: [], trafficking: false,
+      jailCards: [], specialDice: [], trafficking: false,
       status: 'alive', usedGoulag: false, goulagSince: null, debtCreditor: null, civ: DEFAULT_CIV,
       skin: null, // pion personnalisé : { type, colors, v } (l'image est servie à part, voir skinImage)
     };
@@ -174,6 +175,7 @@ export class Game {
       jailVisitSteal: s.jailVisitSteal ?? this.settings.jailVisitSteal,
       rentInJail: s.rentInJail ?? this.settings.rentInJail,
       civs: s.civs ?? this.settings.civs,
+      bigBoard: !!(s.bigBoard ?? this.settings.bigBoard),
       abandonDelay: n(s.abandonDelay ?? this.settings.abandonDelay, 30, 900, 120),
     };
     this.changed();
@@ -227,6 +229,9 @@ export class Game {
 
   skinImage(pid) { return this.skinImages?.[pid] || null; }
 
+  // plateau de la partie (classique ou grand, choisi dans le lobby)
+  get B() { return boardFor(this.settings); }
+
   requireHost(id) { if (id !== this.hostId) fail('Seul l’hôte peut faire ça'); }
 
   start(byId) {
@@ -236,7 +241,7 @@ export class Game {
     this.phase = 'playing';
     this.players = shuffle(this.players);
     for (const p of this.players) p.money = this.settings.startMoney;
-    for (const i of OWNABLE) this.props[i] = { owner: null, houses: 0 };
+    for (const i of this.B.ownable) this.props[i] = { owner: null, houses: 0 };
     this.decks.chance = shuffle(CHANCE_CARDS.map((c) => c.id));
     this.decks.chest = shuffle(CHEST_CARDS.map((c) => c.id));
     this.stats = { turns: 0, startedAt: Date.now(), endedAt: null, history: [], cells: {}, players: {} };
@@ -296,6 +301,7 @@ export class Game {
     if (this.fight && a.type !== 'fightInput') fail('Un combat du goulag est en cours…');
     switch (a.type) {
       case 'roll': this.actRoll(p); break;
+      case 'useSpecialDie': this.actUseSpecialDie(p, a.value); break;
       case 'buy': this.actBuy(p); break;
       case 'decline': this.actDecline(p, !!a.auction); break;
       case 'bid': this.actBid(p, a.amount); break;
@@ -306,6 +312,8 @@ export class Game {
       case 'sell': this.actSell(p, a.cell); break;
       case 'sellProperty': this.actSellProperty(p, a.cell); break;
       case 'casinoSpin': this.actCasinoSpin(p, a.bet); break;
+      case 'casinoGame': this.actCasinoGame(p, a.game); break;
+      case 'rouletteSpin': this.actRouletteSpin(p, a.bet, a.on); break;
       case 'casinoLeave': this.actCasinoLeave(p); break;
       case 'hijack': this.actHijack(p, !!a.accept); break;
       case 'cardOk': this.actCardOk(p); break;
@@ -332,25 +340,37 @@ export class Game {
     return d;
   }
 
-  actRoll(p) {
+  // Dé spécial : avance exactement de sa valeur, à la place des dés (jamais un double)
+  actUseSpecialDie(p, value) {
+    this.requireTurn(p);
+    if (p.jail.in) fail('En prison, le dé spécial ne sert à rien : tentez un double ou payez');
+    const k = p.specialDice.indexOf(value != null ? +value : p.specialDice[0]);
+    if (k < 0) fail('Vous n’avez pas ce dé spécial');
+    this.actRoll(p, p.specialDice[k]);
+    p.specialDice.splice(k, 1);
+  }
+
+  actRoll(p, special = null) {
     this.requireTurn(p);
     const t = this.turn;
     if (t.phase !== 'roll' || t.pending || this.auction) fail('Vous ne pouvez pas lancer les dés maintenant');
     if (p.money < 0) fail('Remboursez vos dettes avant de jouer');
-    const dice = this.rollDice();
+    const dice = special ? [special] : this.rollDice();
     t.dice = dice;
+    t.special = !!special;
     t.rollId++;
     t.rolled = true;
-    const isDouble = dice[0] === dice[1];
-    const sum = dice[0] + dice[1];
+    const isDouble = !special && dice[0] === dice[1];
+    const sum = special || dice[0] + dice[1];
     const ps = this.st(p);
     ps.rolls++;
     ps.diceTotal += sum;
     if (isDouble) ps.doubles++;
     // durée approximative de l'animation côté client (dés + déplacement), pour que les bots attendent
     const fromPos = p.pos;
-    this.after(() => { this.animUntil = Math.max(this.animUntil || 0, Date.now() + 800 + ((p.pos - fromPos + 40) % 40) * 110); });
-    this.addLog(`${p.name} lance les dés : ${dice[0]} + ${dice[1]} = ${sum}${isDouble ? ' (double !)' : ''}`, p.id);
+    this.after(() => { this.animUntil = Math.max(this.animUntil || 0, Date.now() + 800 + ((p.pos - fromPos + this.B.n) % this.B.n) * 110); });
+    if (special) this.addLog(`🎲 ${p.name} joue son dé spécial : ${sum}`, p.id);
+    else this.addLog(`${p.name} lance les dés : ${dice[0]} + ${dice[1]} = ${sum}${isDouble ? ' (double !)' : ''}`, p.id);
 
     if (p.jail.in) {
       const sentence = p.jail.heavy ? RULES.TRAFFIC_JAIL_TURNS : RULES.JAIL_TURNS;
@@ -403,8 +423,9 @@ export class Game {
   // ---------- déplacements ----------
   moveBy(p, steps, opts = {}) {
     const from = p.pos;
-    const to = (from + steps + 40) % 40;
-    if (steps > 0 && from + steps >= 40) this.passGo(p);
+    const n = this.B.n;
+    const to = (from + steps + n) % n;
+    if (steps > 0 && from + steps >= n) this.passGo(p);
     p.pos = to;
     this.land(p, opts);
   }
@@ -451,7 +472,7 @@ export class Game {
     this.st(p).jail++;
     if (heavy) this.st(p).trafficArrests++;
     p.trafficking = false;
-    p.pos = RULES.JAIL_POSITION;
+    p.pos = this.B.jail;
     p.jail = { in: true, turns: 0, heavy };
     if (this.turn && this.turn.pid === p.id) this.turn.extraRoll = false;
     // case d'où part le pion : le client l'y fait aller avant de l'envoyer en prison
@@ -478,7 +499,7 @@ export class Game {
   }
 
   land(p, opts = {}) {
-    const cell = BOARD[p.pos];
+    const cell = this.B.cells[p.pos];
     this.cellStat(p.pos).landings++;
     switch (cell.type) {
       case 'city':
@@ -552,7 +573,7 @@ export class Game {
   }
 
   rentFor(index, opts = {}) {
-    const cell = BOARD[index];
+    const cell = this.B.cells[index];
     const prop = this.props[index];
     if (!prop?.owner) return 0;
     if (cell.type === 'city') {
@@ -561,20 +582,20 @@ export class Game {
     }
     const team = this.teamOf(prop.owner);
     if (cell.type === 'airport') {
-      const n = BOARD.filter((c) => c.type === 'airport' && team.includes(this.props[c.index].owner)).length;
+      const n = this.B.cells.filter((c) => c.type === 'airport' && team.includes(this.props[c.index].owner)).length;
       return AIRPORT_RENTS[n - 1] * (opts.rentMultiplier || 1);
     }
     if (cell.type === 'utility') {
-      const n = BOARD.filter((c) => c.type === 'utility' && team.includes(this.props[c.index].owner)).length;
-      const mult = opts.utilityMultiplier || (n === 2 ? 10 : 4);
+      const n = this.B.cells.filter((c) => c.type === 'utility' && team.includes(this.props[c.index].owner)).length;
+      const mult = opts.utilityMultiplier || [4, 10, 20][n - 1];
       const dice = this.turn?.dice || [3, 4];
-      return (dice[0] + dice[1]) * mult;
+      return dice.reduce((a, b) => a + b, 0) * mult; // un dé spécial ne compte qu'une valeur
     }
     return 0;
   }
 
   ownsCountry(pid, country) {
-    return COUNTRY_CELLS[country].every((i) => this.props[i].owner === pid);
+    return this.B.countryCells[country].every((i) => this.props[i].owner === pid);
   }
 
   // ---------- Régime de Vichy : alliances temporaires ----------
@@ -593,7 +614,7 @@ export class Game {
   // pour les loyers, les villes des deux collaborateurs comptent ensemble
   teamOwnsCountry(pid, country) {
     const team = this.teamOf(pid);
-    return COUNTRY_CELLS[country].every((i) => team.includes(this.props[i].owner));
+    return this.B.countryCells[country].every((i) => team.includes(this.props[i].owner));
   }
 
   formAlliance(p) {
@@ -640,7 +661,7 @@ export class Game {
     this.requireTurn(p);
     const pend = this.turn.pending;
     if (pend?.type !== 'buy') fail('Rien à acheter');
-    const cell = BOARD[pend.cell];
+    const cell = this.B.cells[pend.cell];
     if (p.money < cell.price) fail('Pas assez d’argent');
     p.money -= cell.price;
     this.props[cell.index].owner = p.id;
@@ -659,7 +680,7 @@ export class Game {
     this.requireTurn(p);
     const pend = this.turn.pending;
     if (pend?.type !== 'buy') fail('Rien à refuser');
-    const cell = BOARD[pend.cell];
+    const cell = this.B.cells[pend.cell];
     const bidders = this.alive.filter((x) => x.money > 0);
     if (auction && !this.settings.auction) fail('Les enchères sont désactivées dans cette partie');
     if (auction && bidders.length < 2) fail('Pas assez de joueurs pour une enchère');
@@ -703,7 +724,7 @@ export class Game {
     const a = this.auction;
     this.auction = null;
     clearTimeout(this.auctionTimer);
-    const cell = BOARD[a.cell];
+    const cell = this.B.cells[a.cell];
     const w = a.bidder && this.player(a.bidder);
     if (w && w.status === 'alive' && w.money >= a.bid) {
       w.money -= a.bid;
@@ -739,6 +760,7 @@ export class Game {
     const win = casinoPayout(reels, bet);
     p.money += win - bet;
     pend.spins++;
+    pend.game = 'slots';
     pend.last = { id: (this.casinoSeq = (this.casinoSeq || 0) + 1), reels, bet, win };
     const s = this.st(p);
     s.casinoSpins++;
@@ -752,6 +774,40 @@ export class Game {
     this.animUntil = Date.now() + 3000;
   }
 
+  // choix de la table (machine à sous ou roulette) : sert à montrer la bonne table aux autres joueurs
+  actCasinoGame(p, game) {
+    this.requireTurn(p);
+    const pend = this.turn.pending;
+    if (pend?.type !== 'casino') fail('Vous n’êtes pas au casino');
+    pend.game = game === 'roulette' ? 'roulette' : 'slots';
+  }
+
+  actRouletteSpin(p, bet, on) {
+    this.requireTurn(p);
+    const pend = this.turn.pending;
+    if (pend?.type !== 'casino') fail('Vous n’êtes pas au casino');
+    if (pend.spins >= CASINO.MAX_SPINS) fail(`Maximum ${CASINO.MAX_SPINS} parties par visite`);
+    bet = Math.floor(+bet);
+    if (!(bet >= 1)) fail('Mise invalide');
+    if (bet > p.money) fail('Vous ne pouvez pas miser plus que votre argent');
+    if (typeof on === 'string' && /^\d+$/.test(on)) on = +on;
+    if (!validRouletteBet(on)) fail('Pari invalide');
+    const n = ROULETTE.ORDER[Math.floor(Math.random() * ROULETTE.ORDER.length)];
+    const win = roulettePayout(on, n, bet);
+    p.money += win - bet;
+    pend.spins++;
+    pend.game = 'roulette';
+    pend.roulette = { id: (this.casinoSeq = (this.casinoSeq || 0) + 1), n, on, bet, win };
+    const s = this.st(p);
+    s.casinoSpins++;
+    s.casinoBet += bet;
+    s.casinoWon += win;
+    const color = { red: 'rouge', black: 'noir', green: 'vert' }[rouletteColor(n)];
+    this.addLog(`🎡 ${p.name} mise ${bet} $ sur ${rouletteBetLabel(on)} : le ${n} ${color} sort → ${win ? `gagne ${win} $` : 'perdu'}`, p.id);
+    // laisse tourner la roue avant que les bots enchaînent
+    this.animUntil = Date.now() + 5500;
+  }
+
   actCasinoLeave(p) {
     this.requireTurn(p);
     if (this.turn.pending?.type !== 'casino') fail('Vous n’êtes pas au casino');
@@ -762,7 +818,7 @@ export class Game {
   // ---------- détournement d'avion ----------
   // Cible tirée au hasard parmi les villes adverses qui ont au moins une maison ou un hôtel
   hijackTarget(p) {
-    const targets = BOARD.filter((c) => {
+    const targets = this.B.cells.filter((c) => {
       const prop = c.type === 'city' && this.props[c.index];
       return prop && prop.houses > 0 && prop.owner && prop.owner !== p.id;
     });
@@ -791,9 +847,9 @@ export class Game {
       prop.houses = 0;
       this.st(p).hijacks++;
       this.st(victim).hotelsLost++;
-      const cell = BOARD[target];
+      const cell = this.B.cells[target];
       const what = buildingsLabel(houses);
-      this.addLog(`✈️ ${p.name} paie ${pend.cost} $ et détourne un avion depuis ${BOARD[pend.from].name}… où va-t-il s’écraser ?`, p.id);
+      this.addLog(`✈️ ${p.name} paie ${pend.cost} $ et détourne un avion depuis ${this.B.cells[pend.from].name}… où va-t-il s’écraser ?`, p.id);
       this.addEvent('hijack', {
         pid: p.id, victim: victim.id, from: pend.from, cell: target, houses,
         text: `✈️💥 ${p.name} a détruit ${what} de ${victim.name} à ${cell.name} !`,
@@ -821,11 +877,15 @@ export class Game {
     const card = ALL_CARDS[id];
     if (card.action.kind !== 'jailCard') ids.push(id);
     const label = deck === 'chance' ? 'Chance' : 'Caisse de communauté';
-    this.addLog(`${p.name} tire une carte ${label} : « ${card.text} »`, p.id);
+    // dé spécial : sa valeur est tirée au moment de la pioche
+    const value = card.action.kind === 'specialDie'
+      ? SPECIAL_DIE.MIN + Math.floor(Math.random() * (SPECIAL_DIE.MAX - SPECIAL_DIE.MIN + 1)) : null;
+    const text = value != null ? card.text.replace('{n}', value) : card.text;
+    this.addLog(`${p.name} tire une carte ${label} : « ${text} »`, p.id);
     this.st(p).cards++;
-    this.addEvent('card', { pid: p.id, deck, text: card.text, cardId: card.id });
+    this.addEvent('card', { pid: p.id, deck, text, cardId: card.id });
     // l'effet n'est appliqué que lorsque le joueur a lu la carte et cliqué (les bots attendent un peu)
-    this.turn.pending = { type: 'card', deck, cardId: card.id, text: card.text, kind: card.action.kind };
+    this.turn.pending = { type: 'card', deck, cardId: card.id, text, kind: card.action.kind, value };
     this.animUntil = Math.max(this.animUntil || 0, Date.now() + 3500);
   }
 
@@ -834,18 +894,19 @@ export class Game {
     const pend = this.turn.pending;
     if (pend?.type !== 'card') fail('Aucune carte à jouer');
     this.turn.pending = null;
-    this.applyCard(p, ALL_CARDS[pend.cardId]);
+    this.applyCard(p, ALL_CARDS[pend.cardId], pend);
     this.updatePhase();
   }
 
-  applyCard(p, card) {
+  applyCard(p, card, pend = {}) {
     const a = card.action;
     switch (a.kind) {
-      case 'moveTo': this.moveTo(p, a.to); break;
+      case 'specialDie': p.specialDice.push(pend.value ?? SPECIAL_DIE.MAX); break;
+      case 'moveTo': this.moveTo(p, a.cell ? this.B.find(a.cell) : a.to); break;
       case 'moveBy': this.moveBy(p, a.steps); break;
       case 'nearest': {
         let i = p.pos;
-        do { i = (i + 1) % 40; } while (BOARD[i].type !== a.target);
+        do { i = (i + 1) % this.B.n; } while (this.B.cells[i].type !== a.target);
         this.moveTo(p, i, a.target === 'airport' ? { rentMultiplier: 2 } : { utilityMultiplier: 10 });
         break;
       }
@@ -885,9 +946,9 @@ export class Game {
   }
 
   groupHasBuildings(index) {
-    const cell = BOARD[index];
+    const cell = this.B.cells[index];
     if (cell.type !== 'city') return false;
-    return COUNTRY_CELLS[cell.country].some((i) => this.props[i].houses > 0);
+    return this.B.countryCells[cell.country].some((i) => this.props[i].houses > 0);
   }
 
   forcedSwap(p) {
@@ -907,7 +968,7 @@ export class Game {
     this.props[b].owner = p.id;
     this.st(p).swaps++;
     this.cancelTradesWithProps([a, b]);
-    const text = `🔀 Échange forcé : ${p.name} donne ${BOARD[a].name} et reçoit ${BOARD[b].name} de ${other.name}`;
+    const text = `🔀 Échange forcé : ${p.name} donne ${this.B.cells[a].name} et reçoit ${this.B.cells[b].name} de ${other.name}`;
     this.addLog(text, p.id);
     this.addEvent('swap', { pid: p.id, other: other.id, cells: [a, b], text });
   }
@@ -938,11 +999,11 @@ export class Game {
   actBuild(p, index) {
     this.requireTurn(p);
     this.requireAlive(p);
-    const cell = BOARD[index];
+    const cell = this.B.cells[index];
     const prop = this.props[index];
     if (cell?.type !== 'city' || prop.owner !== p.id) fail('Ce n’est pas votre ville');
     if (!this.ownsCountry(p.id, cell.country)) fail(`Il faut posséder toutes les villes de ${COUNTRIES[cell.country].name}`);
-    const group = COUNTRY_CELLS[cell.country].map((i) => this.props[i]);
+    const group = this.B.countryCells[cell.country].map((i) => this.props[i]);
     if (prop.houses >= 5) fail('Déjà un hôtel');
     if (prop.houses > Math.min(...group.map((g) => g.houses))) fail('Construisez uniformément dans le pays');
     const price = housePrice(cell);
@@ -956,11 +1017,11 @@ export class Game {
 
   actSell(p, index) {
     this.requireAlive(p);
-    const cell = BOARD[index];
+    const cell = this.B.cells[index];
     const prop = this.props[index];
     if (cell?.type !== 'city' || prop.owner !== p.id) fail('Ce n’est pas votre ville');
     if (prop.houses <= 0) fail('Aucun bâtiment');
-    const group = COUNTRY_CELLS[cell.country].map((i) => this.props[i]);
+    const group = this.B.countryCells[cell.country].map((i) => this.props[i]);
     if (prop.houses < Math.max(...group.map((g) => g.houses))) fail('Vendez uniformément dans le pays');
     prop.houses--;
     p.money += housePrice(cell) / 2;
@@ -971,7 +1032,7 @@ export class Game {
   // Revente d'une propriété à la banque (remplace l'hypothèque) : elle redevient libre à l'achat
   actSellProperty(p, index) {
     this.requireAlive(p);
-    const cell = BOARD[index];
+    const cell = this.B.cells[index];
     const prop = this.props[index];
     if (!prop || prop.owner !== p.id) fail('Ce n’est pas votre propriété');
     if (this.groupHasBuildings(index)) fail('Vendez d’abord les bâtiments du pays');
@@ -1015,7 +1076,7 @@ export class Game {
     let total = p.money;
     for (const [i, prop] of Object.entries(this.props)) {
       if (prop.owner !== p.id) continue;
-      const cell = BOARD[i];
+      const cell = this.B.cells[i];
       total += resaleValue(cell);
       total += (prop.houses * housePrice(cell)) / 2;
     }
@@ -1037,7 +1098,7 @@ export class Game {
     const owned = Object.keys(this.props).filter((i) => this.props[i].owner === p.id).map(Number);
     for (const i of owned) {
       const prop = this.props[i];
-      p.money += (prop.houses * housePrice(BOARD[i])) / 2;
+      p.money += (prop.houses * housePrice(this.B.cells[i])) / 2;
       prop.houses = 0;
       prop.owner = null;
     }
@@ -1164,8 +1225,8 @@ export class Game {
     if (o.money > 0 && p.money < o.money) fail(`${p.name} n’a pas assez d’argent`);
     if (p.jailCards.length < o.cards) fail(`${p.name} n’a pas assez de cartes prison`);
     for (const i of o.props) {
-      if (this.props[i].owner !== p.id) fail(`${BOARD[i].name} n’appartient pas à ${p.name}`);
-      if (this.groupHasBuildings(i)) fail(`Vendez les bâtiments de ${COUNTRIES[BOARD[i].country].name} avant d’échanger`);
+      if (this.props[i].owner !== p.id) fail(`${this.B.cells[i].name} n’appartient pas à ${p.name}`);
+      if (this.groupHasBuildings(i)) fail(`Vendez les bâtiments de ${COUNTRIES[this.B.cells[i].country].name} avant d’échanger`);
     }
   }
 
